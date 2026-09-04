@@ -1305,6 +1305,7 @@ function vvObterParcelasProdutoParaEnvioOmie(parcelasPreferidas = null) {
     if (!Array.isArray(fonte) || !fonte.length) continue;
 
     const normalizadas = fonte
+      .filter(p => p?._tipoParcela !== "faturado-direto")
       .map(vvNormalizarParcelaControle)
       .filter(parcela => parcela.valor > 0 && !parcela.ignorar);
 
@@ -3882,7 +3883,7 @@ footer.querySelector('#vv-confirmar').addEventListener('click', async ()=>{
     // Distribui pelo tipo definido no formulário; faturado-direto é ignorado
     const parcelasProdutoDoForm  = todasParcelasForm.filter(p => p._tipoParcela === "produtos");
     const parcelasServicoDoForm  = todasParcelasForm.filter(p => p._tipoParcela === "servicos");
-    const semTipoDefinido        = todasParcelasForm.filter(p => !p._tipoParcela || p._tipoParcela === "faturado-direto");
+    const semTipoDefinido        = todasParcelasForm.filter(p => !p._tipoParcela);
 
     const parcelasProdutoSalvas =
       parcelasProdutoDoForm.length > 0
