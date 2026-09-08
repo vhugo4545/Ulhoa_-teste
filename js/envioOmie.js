@@ -3361,8 +3361,14 @@ if ($srvValor && valorServicosAutomatic > 0 && !srvValorEditadoManualmente) {
     $srvValor.dataset.valorOriginal = vv_fmtBRL(valorServicosAutomatic);
   }
 } else if (!temServicosReais && !srvValorEditadoManualmente) {
-  // Sem serviços reais e sem edição manual — zera o campo
-  if ($srvValor) { $srvValor.value = vv_fmtBRL(0); }
+  // Se havia valor automático antes (item agora ignorado), preserva-o como manual
+  const _valorOrigSrv = vv_parseBRL($srvValor?.dataset.valorOriginal || '0');
+  if (_valorOrigSrv > 0) {
+    $srvValor.value = vv_fmtBRL(_valorOrigSrv);
+    srvValorEditadoManualmente = true;
+  } else {
+    if ($srvValor) { $srvValor.value = vv_fmtBRL(0); }
+  }
 }
 
   if (nAprov === 0){
