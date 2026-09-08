@@ -85,6 +85,10 @@ function formatarDataBR(valor) {
 
 function mostrarPopupPendencias(pendencias) {
   const lista = document.getElementById("listaPendencias");
+  if (!lista) {
+    alert("Pendências:\n- " + pendencias.join("\n- "));
+    return;
+  }
   lista.innerHTML = "";
   pendencias.forEach(p => {
     const li = document.createElement("li");
