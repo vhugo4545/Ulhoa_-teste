@@ -2348,6 +2348,7 @@ async function abrirPopupSelecaoItensOmie(itens){
   let _comArq = { modo:'percent', percent:0, valorManual:0, nome:'', codigo:'', prev:'', venc:'', obs:'' };
   let _comVend= { modo:'percent', percent:0, valorManual:0, nome:(vendedorDefault||''), codigo:'', prev:'', venc:'', obs:'' };
   let _lastTotalBaseMO = 0;
+  let _lastDescSugerido = 0;
 
   if (arqDomValorInicial > 0) { _comArq.modo = 'valor'; _comArq.valorManual = arqDomValorInicial; }
 
@@ -3041,6 +3042,20 @@ function abrirPopupComissao(){
         </div>
         <small class="vv-help">Use o botão "Comissão…" para cadastrar nomes e confirmar.</small>
       </div>
+
+      <!-- Valor Alvo -->
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <label style="font-weight:600;">Valor alvo (total p/ Omie)</label>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <input id="valorAlvo" type="text" value="" placeholder="R$ 0,00" class="vv-input"
+            style="width:160px; padding:8px; border:1px solid #e2e8f0; border-radius:8px;">
+          <button id="vv-badge-desc-sugerido" hidden
+            style="padding:5px 10px; border:none; border-radius:20px; color:#fff; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; transition:background 0.2s;">
+            → desc
+          </button>
+        </div>
+        <small class="vv-help">Clique no badge para ajustar o desconto automaticamente.</small>
+      </div>
     `;
 
     // --------- tabela ---------
@@ -3387,6 +3402,9 @@ if ($srvValor && valorServicosAutomatic > 0 && !srvValorEditadoManualmente) {
     $catServico.textContent = vv_fmtBRL(0);
     $catVidro.textContent   = vv_fmtBRL(fromCents(catIgnoradosSemMO));
     _lastTotalBaseMO = 0;
+    _lastDescSugerido = 0;
+    const $badgeDSugE = document.getElementById('vv-badge-desc-sugerido');
+    if ($badgeDSugE) $badgeDSugE.hidden = true;
     return;
   }
 
@@ -3505,6 +3523,33 @@ const servTotal = valorServicosAutomatic > 0 && !srvValorEditadoManualmente
   $catServico.textContent = vv_fmtBRL(fromCents(catServicoC));
   $catVidro.textContent   = vv_fmtBRL(fromCents(catIgnoradosSemMO));
 
+  // ── Badge "valor alvo" ────────────────────────────────────────────────────
+  {
+    const $valAlvo  = document.getElementById('valorAlvo');
+    const $badgeDSug = document.getElementById('vv-badge-desc-sugerido');
+    if ($valAlvo && $badgeDSug) {
+      const valorAlvo = vv_parseBRL($valAlvo.value || '0');
+      if (valorAlvo > 0.005) {
+        const totalOmie = fromCents(catProdutoC) + fromCents(catServicoC);
+        const diff = Math.round((totalOmie - valorAlvo) * 100) / 100;
+        _lastDescSugerido = diff;
+        if (Math.abs(diff) > 0.01) {
+          $badgeDSug.textContent = diff > 0
+            ? `→ desc +${vv_fmtBRL(diff)}`
+            : `→ desc −${vv_fmtBRL(-diff)}`;
+          $badgeDSug.style.background = diff > 0 ? '#dc2626' : '#2563eb';
+          $badgeDSug.hidden = false;
+        } else {
+          $badgeDSug.hidden = true;
+          _lastDescSugerido = 0;
+        }
+      } else {
+        $badgeDSug.hidden = true;
+        _lastDescSugerido = 0;
+      }
+    }
+  }
+
   _lastTotalBaseMO = totalBaseMO;
 
   if (typeof atualizarValoresParcelas === "function") atualizarValoresParcelas();
@@ -3518,6 +3563,29 @@ const servTotal = valorServicosAutomatic > 0 && !srvValorEditadoManualmente
         inp.addEventListener('blur', ()=>{ inp.value = vv_fmtBRL(vv_parseBRL(inp.value||'0')); });
       }
     });
+
+    // ── Valor alvo ────────────────────────────────────────────────────────────
+    const $valorAlvoInp = controls.querySelector('#valorAlvo');
+    const $badgeDescSug = controls.querySelector('#vv-badge-desc-sugerido');
+    if ($valorAlvoInp) {
+      $valorAlvoInp.addEventListener('input', recalc);
+      $valorAlvoInp.addEventListener('blur', () => {
+        const v = vv_parseBRL($valorAlvoInp.value || '0');
+        $valorAlvoInp.value = v > 0 ? vv_fmtBRL(v) : '';
+        recalc();
+      });
+    }
+    if ($badgeDescSug) {
+      $badgeDescSug.addEventListener('click', () => {
+        if (Math.abs(_lastDescSugerido) < 0.01) return;
+        // Garante modo "valor fixo" no desconto
+        const rValor = controls.querySelector('input[name="discModo"][value="valor"]');
+        if (rValor && !rValor.checked) rValor.checked = true;
+        const currentDisc = vv_parseBRL($discValor.value || '0');
+        $discValor.value = vv_fmtBRL(Math.max(0, currentDisc + _lastDescSugerido));
+        recalc();
+      });
+    }
 
     footer.querySelector('#vv-marcar-todos').addEventListener('click', ()=>{
       [...tbody.querySelectorAll('.vv-ignorar')].forEach(c => c.checked = true);
