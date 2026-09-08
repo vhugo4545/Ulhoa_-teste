@@ -3530,7 +3530,7 @@ const servTotal = valorServicosAutomatic > 0 && !srvValorEditadoManualmente
     if ($valAlvo && $badgeDSug) {
       const valorAlvo = vv_parseBRL($valAlvo.value || '0');
       if (valorAlvo > 0.005) {
-        const totalOmie = fromCents(catProdutoC) + fromCents(catServicoC);
+        const totalOmie = fromCents(catProdutoC) + fromCents(catServicoC) + fromCents(catIgnoradosSemMO);
         const diff = Math.round((totalOmie - valorAlvo) * 100) / 100;
         _lastDescSugerido = diff;
         if (Math.abs(diff) > 0.01) {
