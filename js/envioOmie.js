@@ -1807,13 +1807,10 @@ function abrirPopupParcelamentoProdutosServicos({
       const ignorarCheck = card.querySelector(".vv-ignorar-parcela");
       if (ignorarCheck) {
         ignorarCheck.checked = !!normalizada.ignorar;
+        if (ignorarCheck.checked) card.style.opacity = "0.45";
         ignorarCheck.addEventListener("change", () => {
-          if (ignorarCheck.checked) {
-            const bucketAtual = card.dataset.bucket || bucket;
-            card.remove();
-            atualizarEstadoLista(bucketAtual);
-            atualizarResumoParcelasControle();
-          }
+          card.style.opacity = ignorarCheck.checked ? "0.45" : "";
+          atualizarResumoParcelasControle();
         });
       }
 
