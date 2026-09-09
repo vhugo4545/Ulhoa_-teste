@@ -288,7 +288,7 @@ function mostrarPopupSelecaoGruposEstetico(grupos, valorFinal, onConfirmar) {
           </div>
           <label class="grupo-checkbox">
             <input type="checkbox" name="ocultarProduto" data-grupoid="${g.grupoId}" checked>
-            <span style="font-size:.99em;">Ocultar produto principal</span>
+            <span style="font-size:.99em;">Exibir no PDF</span>
           </label>
         </div>`).join('')}
       </form>
