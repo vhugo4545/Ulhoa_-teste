@@ -21,7 +21,13 @@ function evaluateFormula(formula, grupo) {
   }
 
   try {
-    // Substituir funções personalizadas
+    // Separadores estilo Excel: vírgula decimal → ponto, ponto-e-vírgula → vírgula de argumento
+    formula = formula.replace(/,/g, '.').replace(/;/g, ',');
+
+    // Traduz nomes de funções Excel para aliases JS
+    formula = formula.replace(/\bTETO\b/g, '_TETO').replace(/\bARRED\b/g, '_ARRED');
+
+    // Substituir funções personalizadas legadas
     formula = formula.replace(/#arredondarCima\s*\(([^)]+)\)/g, (_, expr) => `Math.ceil(${expr})`);
     formula = formula.replace(/#arredondarBaixo\s*\(([^)]+)\)/g, (_, expr) => `Math.floor(${expr})`);
 
@@ -49,8 +55,10 @@ function evaluateFormula(formula, grupo) {
       return isNaN(val) ? `"${val}"` : Number(val);
     });
 
-    // Avaliação segura
-    return new Function(`return ${formula}`)();
+    // Funções Excel injetadas no escopo de avaliação
+    const _TETO  = (x, sig) => (x <= 0 ? 0 : Math.ceil(x / sig) * sig);
+    const _ARRED = (x, d)   => Math.round(x * Math.pow(10, d)) / Math.pow(10, d);
+    return new Function('_TETO', '_ARRED', `return ${formula}`)(_TETO, _ARRED);
   } catch (err) {
     console.warn("Erro ao avaliar fórmula:", formula, err);
     return "";
@@ -63,7 +71,6 @@ function evaluateFormula(formula, grupo) {
 function calcularQuantidadeDesejada(item, context = {}) {
   let formula = (item.formula_quantidade || "").toString().trim();
   if (formula.startsWith("=")) formula = formula.slice(1);
-  formula = formula.replace(/[,;]/g, ".");
 
   try {
     return evaluateFormula(formula, context);
@@ -93,7 +100,7 @@ function configurarCampoQuantidadeDesejada(inputEl, item, context = {}) {
       formulaOriginal = novaFormula;
     }
 
-    const formula = novaFormula.replace(/^=/, "").replace(/[,;]/g, ".");
+    const formula = novaFormula.replace(/^=/, "");
     const valor = evaluateFormula(formula, context);
     inputEl.value = Number.isFinite(valor) ? valor : 0;
   });
@@ -128,7 +135,6 @@ function simularFocusEBlurEmTodosCamposFormula() {
 function calcularQuantidadeDesejada(item, context = {}) {
   let formula = (item.formula_quantidade || "").toString().trim();
   if (formula.startsWith("=")) formula = formula.slice(1);
-  formula = formula.replace(/[,;]/g, ".");
 
   try {
     return evaluateFormula(formula, context);

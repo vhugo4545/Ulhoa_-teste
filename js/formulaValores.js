@@ -460,7 +460,19 @@ const labelsParametros = {
   altura_montante: "Altura do Montante",
   numero_protecoes: "Número de Proteções / Altura do Vidro",
   margem_lucro: "Margem de Lucro",
-  descricao: "Metragem / Unidade(s)"
+  descricao: "Metragem / Unidade(s)",
+  equipe_mo_botao:    "Equipe MO Botão",
+  ritmo_mo_botao:     "Ritmo MO Botão (un/dia)",
+  equipe_mo_garra:    "Equipe MO Garra",
+  ritmo_mo_garra:     "Ritmo MO Garra (un/dia)",
+  equipe_mo_calha:    "Equipe MO Calha Infinity",
+  ritmo_mo_calha:     "Ritmo MO Calha Infinity (m/dia)",
+  equipe_mo_vidro_bg: "Equipe MO Vidro Botão/Garra",
+  ritmo_mo_vidro_bg:  "Ritmo MO Vidro Botão/Garra (un/dia)",
+  equipe_mo_vidro_h:  "Equipe MO Vidro Montante H",
+  ritmo_mo_vidro_h:   "Ritmo MO Vidro Montante H (un/dia)",
+  equipe_mo_vidro_ci: "Equipe MO Vidro Calha Infinity",
+  ritmo_mo_vidro_ci:  "Ritmo MO Vidro Calha Infinity (un/dia)"
 };
 
 // Ordem para exibição no front
@@ -475,7 +487,19 @@ const ordemParametros = [
   "altura_montante",
   "numero_protecoes",
   "margem_lucro",
-  "descricao"
+  "descricao",
+  "equipe_mo_botao",
+  "ritmo_mo_botao",
+  "equipe_mo_garra",
+  "ritmo_mo_garra",
+  "equipe_mo_calha",
+  "ritmo_mo_calha",
+  "equipe_mo_vidro_bg",
+  "ritmo_mo_vidro_bg",
+  "equipe_mo_vidro_h",
+  "ritmo_mo_vidro_h",
+  "equipe_mo_vidro_ci",
+  "ritmo_mo_vidro_ci"
 ];
 
 // ----------------------------
@@ -545,7 +569,7 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
                         <div class="col-6">
                           <label class="form-label">${labelsParametros[param]}</label>
                           <input type="text" name="${param}" class="form-control form-control-sm"
-                            ${(!estaEditandoModelo && !["altura_montante", "numero_montantes", "numero_protecoes", "descricao", "comissao_arquiteta", "margem_negociacao","margem_seguranca","margem_lucro"].includes(param))
+                            ${(!estaEditandoModelo && !["altura_montante", "numero_montantes", "numero_protecoes", "descricao", "comissao_arquiteta", "margem_negociacao","margem_seguranca","margem_lucro","equipe_mo_botao","ritmo_mo_botao","equipe_mo_garra","ritmo_mo_garra","equipe_mo_calha","ritmo_mo_calha","equipe_mo_vidro_bg","ritmo_mo_vidro_bg","equipe_mo_vidro_h","ritmo_mo_vidro_h","equipe_mo_vidro_ci","ritmo_mo_vidro_ci"].includes(param))
                               ? "readonly style='background:#f3f3f3'" : ""}>
                         </div>
                       `).join("")}
