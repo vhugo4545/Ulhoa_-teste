@@ -34,24 +34,6 @@ function _mostrarPreviewPDF(docDef, nomeArquivo) {
     <div style="background:#fff;border-radius:10px;overflow:hidden;
                 width:min(920px,96vw);height:90vh;
                 display:flex;flex-direction:column;box-shadow:0 8px 40px #0008;">
-      <div style="display:flex;align-items:center;justify-content:space-between;
-                  padding:10px 16px;background:#1e293b;color:#fff;gap:10px;flex-shrink:0;">
-        <span style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-          Pré-visualização — ${nomeArquivo}
-        </span>
-        <div style="display:flex;gap:8px;flex-shrink:0;">
-          <button id="__pdf-download__"
-            style="padding:6px 18px;border:none;border-radius:6px;
-                   background:#22c55e;color:#fff;font-weight:600;font-size:13px;cursor:pointer;">
-            ⬇ Baixar
-          </button>
-          <button id="__pdf-fechar__"
-            style="padding:6px 16px;border:none;border-radius:6px;
-                   background:#ef4444;color:#fff;font-weight:600;font-size:13px;cursor:pointer;">
-            ✕ Fechar
-          </button>
-        </div>
-      </div>
       <div id="__pdf-loading__"
            style="flex:1;display:flex;align-items:center;justify-content:center;font-size:14px;color:#64748b;">
         Gerando PDF…
@@ -76,11 +58,7 @@ function _mostrarPreviewPDF(docDef, nomeArquivo) {
     overlay.remove();
   };
 
-  document.getElementById('__pdf-fechar__').onclick = fechar;
   overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
-  document.getElementById('__pdf-download__').onclick = () => {
-    pdfMake.createPdf(docDef).download(nomeArquivo);
-  };
 }
 
 async function gerarPDFComPdfmake(gruposOcultarProduto, totais = {}) {
