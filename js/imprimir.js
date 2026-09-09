@@ -203,13 +203,10 @@ async function gerarOrcamentoParaImpressaoCompleta() {
     grupos,
     totalComDesconto,
     function(gruposOcultarProduto) {
-      gerarHTMLParaImpressao(gruposOcultarProduto, {
+      gerarPDFComPdfmake(gruposOcultarProduto, {
         totalBruto,
         desconto,
         totalComDesconto,
-        totalBrutoFormatado: numeroParaMoedaBR(totalBruto),
-        descontoFormatado: numeroParaMoedaBR(desconto),
-        totalComDescontoFormatado: numeroParaMoedaBR(totalComDesconto),
         logoBase64
       });
     }
@@ -3320,6 +3317,8 @@ body { padding: 40px; font-family: Arial, sans-serif; font-size: 13px; }
 }
 
 async function gerarFolha4RelatorioEntrega() {
+  return gerarEtapasDProcessoPdfmake();
+  // ── código legado abaixo (mantido para referência) ──
   const getValue = (id) => document.getElementById(id)?.value?.trim() || "-";
 
   const getTextOrValue = (el) => {
@@ -3888,6 +3887,8 @@ async function gerarFolha4RelatorioEntrega() {
 
 
 async function gerarHistoricoDeProducaoParaImpressao() {
+  return gerarRelatorioEntregaPdfmake();
+  // ── código legado abaixo (mantido para referência) ──
   const getValue = (id) => document.getElementById(id)?.value?.trim() || "-";
 
   const getTextOrValue = (el) => {
@@ -4426,6 +4427,8 @@ async function gerarHistoricoDeProducaoParaImpressao() {
 
 
 async function gerarFolha1OrdemDeServico(gruposOcultarProduto) {
+  return gerarOrdemDeServicoPdfmake(gruposOcultarProduto);
+  // ── código legado abaixo (mantido para referência) ──
   const logoSrc = await carregarLogoBase64("../js/logo.jpg");
   const getValue = (id) => document.getElementById(id)?.value?.trim() || "-";
 

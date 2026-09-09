@@ -1578,11 +1578,11 @@ function vvEscolherParcelasIniciaisProdutosServicos({
 } = {}) {
   const parcelasProdutoIniciais = (parcelasProduto || [])
     .map(vvNormalizarParcelaControle)
-    .filter(parcela => parcela.valor > 0);
+    .filter(parcela => parcela.valor > 0 && !parcela.ignorar);
 
   const parcelasServicoIniciais = (parcelasServico || [])
     .map(vvNormalizarParcelaControle)
-    .filter(parcela => parcela.valor > 0);
+    .filter(parcela => parcela.valor > 0 && !parcela.ignorar);
 
   // Só cria parcela inicial de produto se não houver nenhuma salva
   if (!parcelasProdutoIniciais.length && valorTotalProdutos > 0) {
@@ -1854,13 +1854,15 @@ function abrirPopupParcelamentoProdutosServicos({
       return [...buckets[bucket].list.querySelectorAll(".vv-parcela-card")]
         .map(card => {
           const condicaoEl = card.querySelector(".condicao-pagto-transfer");
+          const ignorarCheck = card.querySelector(".vv-ignorar-parcela");
           return vvNormalizarParcelaControle({
             tipo_monetario: card.querySelector(".tipo-monetario-transfer")?.value || "",
             condicao_pagto: condicaoEl?.value || "",
             valor: card.querySelector(".valor-parcela-transfer")?.value || "",
             vencimento: card.querySelector(".data-parcela-transfer")?.value || "",
             descritivo: card.querySelector(".descritivo-parcela-transfer")?.value || "",
-            tipo_parcelamento: card.querySelector(".tipo-parcelamento-transfer")?.value || "normal"
+            tipo_parcelamento: card.querySelector(".tipo-parcelamento-transfer")?.value || "normal",
+            ignorar: ignorarCheck?.checked || false
           });
         })
         .filter(parcela =>
@@ -2063,8 +2065,8 @@ function abrirPopupParcelamentoProdutosServicos({
 
     ft.querySelector("#vv-confirmar-controle-parcelas")?.addEventListener("click", () => {
       try {
-        const parcelasProduto = coletarParcelasBucket("produtos").filter(p => p.valor > 0);
-        const parcelasServico = coletarParcelasBucket("servicos").filter(p => p.valor > 0);
+        const parcelasProduto = coletarParcelasBucket("produtos").filter(p => p.valor > 0 && !p.ignorar);
+        const parcelasServico = coletarParcelasBucket("servicos").filter(p => p.valor > 0 && !p.ignorar);
 
         // ── Validações ──────────────────────────────────────────────────────
         const erros = [];
@@ -3450,6 +3452,10 @@ const servTotal = valorServicosAutomatic > 0 && !srvValorEditadoManualmente
   const totalProdutosDestinoC = toCents(totalProdutosDestino);
   const catServicoC           = toCents(servAplicavel);
 
+  // catProdutoC calculado antes do rateio para usar como base de distribuição
+  const totalTodosComDesconto = Math.max(0, totalTodos - descontoTotal);
+  const catProdutoC = toCents(Math.max(0, totalTodosComDesconto - fromCents(catIgnoradosSemMO) - servAplicavel));
+
   const rowsProdutosOmie = aprovadosRows.filter(tr => {
     const kind    = tr.dataset.kind;
     const isLabor = tr.dataset.islabor === '1';
@@ -3461,14 +3467,14 @@ const servTotal = valorServicosAutomatic > 0 && !srvValorEditadoManualmente
   }, 0);
 
   const alocacaoProdutoC = new Map();
-  if (rowsProdutosOmie.length > 0 && baseProdutosParaRateio > 0 && totalProdutosDestinoC > 0) {
+  if (rowsProdutosOmie.length > 0 && baseProdutosParaRateio > 0 && catProdutoC > 0) {
     let totalAlocadoC = 0;
     const restos = [];
 
     rowsProdutosOmie.forEach(tr => {
       const key         = tr.dataset.key;
       const baseLiquida = baseLiquidaMap.get(key) || 0;
-      const brutoC      = (baseLiquida / baseProdutosParaRateio) * totalProdutosDestinoC;
+      const brutoC      = (baseLiquida / baseProdutosParaRateio) * catProdutoC;
       const pisoC       = Math.floor(brutoC);
 
       alocacaoProdutoC.set(key, pisoC);
@@ -3478,7 +3484,7 @@ const servTotal = valorServicosAutomatic > 0 && !srvValorEditadoManualmente
 
     restos.sort((a, b) => b.resto - a.resto);
 
-    let faltanteC = totalProdutosDestinoC - totalAlocadoC;
+    let faltanteC = catProdutoC - totalAlocadoC;
     while (faltanteC > 0 && restos.length > 0) {
       const item = restos.shift();
       alocacaoProdutoC.set(item.key, (alocacaoProdutoC.get(item.key) || 0) + 1);
@@ -3514,10 +3520,7 @@ const servTotal = valorServicosAutomatic > 0 && !srvValorEditadoManualmente
   $totServ.textContent    = vv_fmtBRL(servAplicavel);
   $totDesc.textContent    = vv_fmtBRL(descontoAplicavel);
   $totCom.textContent     = vv_fmtBRL(comDisplay);
-  $totAjust.textContent   = vv_fmtBRL(fromCents(totalProdutosDestinoC));
-
-  const totalTodosComDesconto = Math.max(0, totalTodos - descontoTotal);
-  const catProdutoC = toCents(Math.max(0, totalTodosComDesconto - fromCents(catIgnoradosSemMO) - servAplicavel));
+  $totAjust.textContent   = vv_fmtBRL(fromCents(catProdutoC));
 
   $catProduto.textContent = vv_fmtBRL(fromCents(catProdutoC));
   $catServico.textContent = vv_fmtBRL(fromCents(catServicoC));
@@ -3947,7 +3950,7 @@ footer.querySelector('#vv-confirmar').addEventListener('click', async ()=>{
   const valorServicos          = vv_parseBRL($totServ.textContent || '0');
   const valorDesconto          = vv_parseBRL($totDesc.textContent || '0');
   const valorComissaoInfo      = vv_parseBRL($totCom.textContent || '0');
-  const totalFinalProdutos     = vv_parseBRL($totAjust.textContent || '0');
+  const totalFinalProdutos     = vv_parseBRL($catProduto.textContent || '0');
 
   let parcelamentoProdutosServicos = null;
   let parcelamentoServicos = null;
@@ -5696,6 +5699,9 @@ async function gerarPayloadOmie() {
   }
 
   payload.lista_parcelas.parcela = parcelasProdutoPayloadOmie;
+
+  console.log("[parcelas payload] enviando para Omie:", JSON.parse(JSON.stringify(parcelasProdutoPayloadOmie)));
+  console.log("[parcelas payload] parcelasParaEnvio (antes de montar):", JSON.parse(JSON.stringify(parcelasProdutoParaEnvio)));
 
   const totalTelaProdutos = round2(
     Number(window.vvUltimoTotalFinalProdutosOmie ?? 0) ||

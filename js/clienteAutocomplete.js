@@ -62,6 +62,51 @@ async function aplicarAutocompleteCliente(container) {
       ? resposta
       : [];
 
+  if (clientesAtivos.length === 0) {
+    fetch("https://ulhoa-0a02024d350a.herokuapp.com/clientes/atualizar", { method: "GET" }).catch(() => {});
+
+    const overlay = document.createElement("div");
+    overlay.style.cssText = `
+      position:fixed; inset:0; background:rgba(0,0,0,.45);
+      display:flex; align-items:center; justify-content:center; z-index:99999;
+    `;
+
+    const box = document.createElement("div");
+    box.style.cssText = `
+      background:#fff; border-radius:16px; padding:36px 32px; max-width:420px; width:90%;
+      box-shadow:0 20px 60px rgba(0,0,0,.25); font-family:'Poppins',sans-serif;
+      text-align:center; display:flex; flex-direction:column; align-items:center; gap:16px;
+    `;
+
+    const icone = document.createElement("div");
+    icone.textContent = "🔄";
+    icone.style.fontSize = "40px";
+
+    const titulo = document.createElement("div");
+    titulo.textContent = "Atualizando histórico de clientes";
+    titulo.style.cssText = "font-size:16px; font-weight:700; color:#0f172a;";
+
+    const mensagem = document.createElement("div");
+    mensagem.textContent = "A atualização foi iniciada. Daqui a alguns minutos o histórico de clientes já estará disponível para busca.";
+    mensagem.style.cssText = "font-size:13px; color:#64748b; line-height:1.6;";
+
+    const btn = document.createElement("button");
+    btn.textContent = "Entendi";
+    btn.style.cssText = `
+      margin-top:8px; padding:10px 28px; border:none; border-radius:8px;
+      background:#0f172a; color:#fff; font-family:'Poppins',sans-serif;
+      font-size:13px; font-weight:600; cursor:pointer;
+    `;
+    btn.onclick = () => document.body.removeChild(overlay);
+
+    box.appendChild(icone);
+    box.appendChild(titulo);
+    box.appendChild(mensagem);
+    box.appendChild(btn);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  }
+
   function mostrarSugestoes(termo) {
     const termoLower = termo.toLowerCase();
 

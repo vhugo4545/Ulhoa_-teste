@@ -402,8 +402,8 @@ function adicionarTotalizadoresPorAmbienteComAgrupamento() {
       currency: "BRL"
     });
 
-    if (typeof atualizarValoresDasParcelas === "function") {
-      atualizarValoresDasParcelas();
+    if (typeof atualizarValoresParcelas === "function") {
+      atualizarValoresParcelas();
     }
   };
 
