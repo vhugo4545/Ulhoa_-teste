@@ -17,6 +17,72 @@ async function carregarPdfmake() {
   });
 }
 
+function _mostrarPreviewPDF(docDef, nomeArquivo) {
+  const overlayId = '__pdf-preview-overlay__';
+  document.getElementById(overlayId)?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = overlayId;
+  overlay.style.cssText = [
+    'position:fixed;inset:0;z-index:99999',
+    'background:rgba(0,0,0,.78)',
+    'display:flex;flex-direction:column;align-items:center;justify-content:center',
+    'font-family:system-ui,sans-serif'
+  ].join(';');
+
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:10px;overflow:hidden;
+                width:min(920px,96vw);height:90vh;
+                display:flex;flex-direction:column;box-shadow:0 8px 40px #0008;">
+      <div style="display:flex;align-items:center;justify-content:space-between;
+                  padding:10px 16px;background:#1e293b;color:#fff;gap:10px;flex-shrink:0;">
+        <span style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+          Pré-visualização — ${nomeArquivo}
+        </span>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          <button id="__pdf-download__"
+            style="padding:6px 18px;border:none;border-radius:6px;
+                   background:#22c55e;color:#fff;font-weight:600;font-size:13px;cursor:pointer;">
+            ⬇ Baixar
+          </button>
+          <button id="__pdf-fechar__"
+            style="padding:6px 16px;border:none;border-radius:6px;
+                   background:#ef4444;color:#fff;font-weight:600;font-size:13px;cursor:pointer;">
+            ✕ Fechar
+          </button>
+        </div>
+      </div>
+      <div id="__pdf-loading__"
+           style="flex:1;display:flex;align-items:center;justify-content:center;font-size:14px;color:#64748b;">
+        Gerando PDF…
+      </div>
+      <iframe id="__pdf-iframe__" style="flex:1;border:none;width:100%;display:none;"></iframe>
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  let blobUrl = null;
+
+  pdfMake.createPdf(docDef).getBlob(blob => {
+    blobUrl = URL.createObjectURL(blob);
+    const iframe = document.getElementById('__pdf-iframe__');
+    const loading = document.getElementById('__pdf-loading__');
+    if (iframe) { iframe.src = blobUrl; iframe.style.display = ''; }
+    if (loading) loading.style.display = 'none';
+  });
+
+  const fechar = () => {
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
+    overlay.remove();
+  };
+
+  document.getElementById('__pdf-fechar__').onclick = fechar;
+  overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
+  document.getElementById('__pdf-download__').onclick = () => {
+    pdfMake.createPdf(docDef).download(nomeArquivo);
+  };
+}
+
 async function gerarPDFComPdfmake(gruposOcultarProduto, totais = {}) {
   mostrarCarregando && mostrarCarregando();
 
@@ -293,7 +359,7 @@ async function gerarPDFComPdfmake(gruposOcultarProduto, totais = {}) {
   Object.entries(ambientesMap).forEach(([nomeAmbiente, grupos]) => {
     const visiveis = grupos.filter(g => !g.ocultar);
     if (!visiveis.length) return;
-    const totalAmbiente = visiveis.reduce((s, g) => s + g.totalGrupo, 0);
+    const totalAmbiente = grupos.reduce((s, g) => s + g.totalGrupo, 0);
 
     visiveis.forEach((g, idx) => {
       const isFirst = idx === 0;
@@ -459,7 +525,7 @@ async function gerarPDFComPdfmake(gruposOcultarProduto, totais = {}) {
   };
 
   ocultarCarregando && ocultarCarregando();
-  pdfMake.createPdf(docDefinition).download(`Orcamento_${dados.numero}.pdf`);
+  _mostrarPreviewPDF(docDefinition, `Orcamento_${dados.numero}.pdf`);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -900,7 +966,7 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
   };
 
   ocultarCarregando && ocultarCarregando();
-  pdfMake.createPdf(docDefinition).download(`OrdemServico_${numeroPedido}.pdf`);
+  _mostrarPreviewPDF(docDefinition, `OrdemServico_${numeroPedido}.pdf`);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1136,7 +1202,7 @@ async function gerarRelatorioEntregaPdfmake() {
   };
 
   ocultarCarregando && ocultarCarregando();
-  pdfMake.createPdf(docDefinition).download(`RelatorioEntrega_${numeroPedido}.pdf`);
+  _mostrarPreviewPDF(docDefinition, `RelatorioEntrega_${numeroPedido}.pdf`);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1380,6 +1446,6 @@ async function gerarEtapasDProcessoPdfmake() {
   };
 
   ocultarCarregando && ocultarCarregando();
-  pdfMake.createPdf(docDefinition).download(`EtapasProcesso_${numeroPedido}.pdf`);
+  _mostrarPreviewPDF(docDefinition, `EtapasProcesso_${numeroPedido}.pdf`);
 }
 
