@@ -562,7 +562,11 @@ function gerarHTMLParaImpressao(gruposOcultarProduto, totais = {}) {
     let colunas = linhaProduto?.querySelectorAll("td");
     let descricao = colunas?.[1]?.textContent.trim() || "-";
     let qtd = linhaProduto?.querySelector("input.quantidade")?.value || "1";
-    let unidade = linhaProduto?.querySelector(".unidade-medida")?.textContent?.trim() || "—";
+    const _unidadeDOM0 = linhaProduto?.querySelector(".unidade-medida")?.textContent?.trim() || "";
+    const _codigo0 = colunas?.[4]?.textContent?.trim() || "";
+    let unidade = (_unidadeDOM0 && _unidadeDOM0 !== "—")
+      ? _unidadeDOM0
+      : ((window._produtosUnidadeMap && _codigo0 && window._produtosUnidadeMap[_codigo0]) || "—");
     const ocultar = !!(gruposOcultarProduto && gruposOcultarProduto[grupoId]);
     const informacoesProduto = parseBold(document.querySelector(`#${grupoId}-aba3 textarea[name="informacoesProduto"]`)?.value?.trim() || "");
     const previsaoEntrega = document.querySelector(`#${grupoId}-aba3 input[name="previsaoEntrega"]`)?.value?.trim() || "";
@@ -1104,7 +1108,11 @@ function gerarOrdemDeServicoParaImpressao(gruposOcultarProduto) {
         let qtd = (qtdInput?.value || "").trim();
         if (!qtd) qtd = "1";
 
-        const unidade = tr.querySelector(".unidade-medida")?.textContent?.trim() || "—";
+        const _unidadeDOM = tr.querySelector(".unidade-medida")?.textContent?.trim() || "";
+        const _codigo = tds[4]?.textContent?.trim() || "";
+        const unidade = (_unidadeDOM && _unidadeDOM !== "—")
+          ? _unidadeDOM
+          : ((window._produtosUnidadeMap && _codigo && window._produtosUnidadeMap[_codigo]) || "—");
         return { descricao, qtd, unidade };
       })
       .filter((x) => x.descricao && x.descricao !== "-");
@@ -2312,7 +2320,11 @@ const data = dataOrc !== "-" ? formatarDataBR(dataOrc) : "-";
         let qtd = (qtdInput?.value || "").trim();
         if (!qtd) qtd = "1";
 
-        const unidade = tr.querySelector(".unidade-medida")?.textContent?.trim() || "—";
+        const _unidadeDOM = tr.querySelector(".unidade-medida")?.textContent?.trim() || "";
+        const _codigo = tds[4]?.textContent?.trim() || "";
+        const unidade = (_unidadeDOM && _unidadeDOM !== "—")
+          ? _unidadeDOM
+          : ((window._produtosUnidadeMap && _codigo && window._produtosUnidadeMap[_codigo]) || "—");
         return { descricao, qtd, unidade };
       })
       .filter((x) => x.descricao && x.descricao !== "-");
@@ -4715,7 +4727,11 @@ async function gerarFolha1OrdemDeServico(gruposOcultarProduto) {
         let qtd = (qtdInput?.value || "").trim();
         if (!qtd) qtd = "1";
 
-        const unidade = tr.querySelector(".unidade-medida")?.textContent?.trim() || "—";
+        const _unidadeDOM = tr.querySelector(".unidade-medida")?.textContent?.trim() || "";
+        const _codigo = tds[4]?.textContent?.trim() || "";
+        const unidade = (_unidadeDOM && _unidadeDOM !== "—")
+          ? _unidadeDOM
+          : ((window._produtosUnidadeMap && _codigo && window._produtosUnidadeMap[_codigo]) || "—");
         return { utilizacao, descricao, qtd, unidade };
       })
       .filter((x) => x.descricao && x.descricao !== "-");
