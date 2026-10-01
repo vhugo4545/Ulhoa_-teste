@@ -562,6 +562,7 @@ function gerarHTMLParaImpressao(gruposOcultarProduto, totais = {}) {
     let colunas = linhaProduto?.querySelectorAll("td");
     let descricao = colunas?.[1]?.textContent.trim() || "-";
     let qtd = linhaProduto?.querySelector("input.quantidade")?.value || "1";
+    let unidade = linhaProduto?.querySelector(".unidade-medida")?.textContent?.trim() || "—";
     const ocultar = !!(gruposOcultarProduto && gruposOcultarProduto[grupoId]);
     const informacoesProduto = parseBold(document.querySelector(`#${grupoId}-aba3 textarea[name="informacoesProduto"]`)?.value?.trim() || "");
     const previsaoEntrega = document.querySelector(`#${grupoId}-aba3 input[name="previsaoEntrega"]`)?.value?.trim() || "";
@@ -571,6 +572,7 @@ function gerarHTMLParaImpressao(gruposOcultarProduto, totais = {}) {
       totalGrupo,
       descricao,
       qtd,
+      unidade,
       resumoGrupo,
       informacoesProduto,
       previsaoEntrega,
@@ -605,6 +607,7 @@ function gerarHTMLParaImpressao(gruposOcultarProduto, totais = {}) {
               <tr>
                 <th style="width:40px;">#</th>
                 <th>Descrição</th>
+                <th style="width:80px;">Unid.</th>
                 <th style="width:120px;">Quantidade</th>
               </tr>
             </thead>
@@ -612,12 +615,13 @@ function gerarHTMLParaImpressao(gruposOcultarProduto, totais = {}) {
               <tr>
                 <td>${num}</td>
                 <td>${g.descricao}</td>
+                <td>${g.unidade || "—"}</td>
                 <td>${g.qtd}</td>
               </tr>
-              ${g.resumoGrupo ? `<tr><td colspan="3"><em>${g.resumoGrupo}</em></td></tr>` : ""}
-              ${(g.previsaoEntrega || g.informacoesProduto) ? `<tr><td colspan="3" style="font-size:20px;font-weight:700;text-align:center;background:#f8f8f8;padding:5px 8px;">${g.previsaoEntrega ? `<strong>Prazo Previsto:</strong> ${g.previsaoEntrega}` : ""}${g.previsaoEntrega && g.informacoesProduto ? " &nbsp;|&nbsp; " : ""}${g.informacoesProduto || ""}</td></tr>` : ""}
+              ${g.resumoGrupo ? `<tr><td colspan="4"><em>${g.resumoGrupo}</em></td></tr>` : ""}
+              ${(g.previsaoEntrega || g.informacoesProduto) ? `<tr><td colspan="4" style="font-size:20px;font-weight:700;text-align:center;background:#f8f8f8;padding:5px 8px;">${g.previsaoEntrega ? `<strong>Prazo Previsto:</strong> ${g.previsaoEntrega}` : ""}${g.previsaoEntrega && g.informacoesProduto ? " &nbsp;|&nbsp; " : ""}${g.informacoesProduto || ""}</td></tr>` : ""}
             </tbody>
-            ${isLast ? `<tfoot><tr><td colspan="3" class="text-end fw-bold bg-light" style="padding:6px 8px;">Total do Ambiente ${nomeAmbiente.toUpperCase()}: ${formatarReal(valorTotalAmbiente)}</td></tr></tfoot>` : ""}
+            ${isLast ? `<tfoot><tr><td colspan="4" class="text-end fw-bold bg-light" style="padding:6px 8px;">Total do Ambiente ${nomeAmbiente.toUpperCase()}: ${formatarReal(valorTotalAmbiente)}</td></tr></tfoot>` : ""}
           </table>
         </div>`;
     });
@@ -1100,7 +1104,8 @@ function gerarOrdemDeServicoParaImpressao(gruposOcultarProduto) {
         let qtd = (qtdInput?.value || "").trim();
         if (!qtd) qtd = "1";
 
-        return { descricao, qtd };
+        const unidade = tr.querySelector(".unidade-medida")?.textContent?.trim() || "—";
+        return { descricao, qtd, unidade };
       })
       .filter((x) => x.descricao && x.descricao !== "-");
 
@@ -1125,6 +1130,7 @@ function gerarOrdemDeServicoParaImpressao(gruposOcultarProduto) {
             <tr>
               <td class="num">${contadorInsumo++}</td>
               <td>${it.descricao}</td>
+              <td class="qtd">${it.unidade || "—"}</td>
               <td class="qtd">${it.qtd}</td>
             </tr>
           `).join("")
@@ -1132,6 +1138,7 @@ function gerarOrdemDeServicoParaImpressao(gruposOcultarProduto) {
           <tr>
             <td class="num">1</td>
             <td>-</td>
+            <td class="qtd">—</td>
             <td class="qtd">-</td>
           </tr>
         `;
@@ -1152,6 +1159,7 @@ function gerarOrdemDeServicoParaImpressao(gruposOcultarProduto) {
               <tr>
                 <th style="width:44px;">#</th>
                 <th>Descrição</th>
+                <th style="width:80px;">Unid.</th>
                 <th style="width:110px;">Quantidade</th>
               </tr>
             </thead>
@@ -2304,7 +2312,8 @@ const data = dataOrc !== "-" ? formatarDataBR(dataOrc) : "-";
         let qtd = (qtdInput?.value || "").trim();
         if (!qtd) qtd = "1";
 
-        return { descricao, qtd };
+        const unidade = tr.querySelector(".unidade-medida")?.textContent?.trim() || "—";
+        return { descricao, qtd, unidade };
       })
       .filter((x) => x.descricao && x.descricao !== "-");
 
@@ -2329,6 +2338,7 @@ const data = dataOrc !== "-" ? formatarDataBR(dataOrc) : "-";
             <tr>
               <td class="num"></td>
               <td>${it.descricao}</td>
+              <td class="qtd">${it.unidade || "—"}</td>
               <td class="qtd">${it.qtd}</td>
             </tr>
           `).join("")
@@ -2336,6 +2346,7 @@ const data = dataOrc !== "-" ? formatarDataBR(dataOrc) : "-";
           <tr>
             <td class="num">1</td>
             <td>-</td>
+            <td class="qtd">—</td>
             <td class="qtd">-</td>
           </tr>
         `;
@@ -2356,6 +2367,7 @@ const data = dataOrc !== "-" ? formatarDataBR(dataOrc) : "-";
               <tr>
                 <th style="width:44px;">#</th>
                 <th>Descrição</th>
+                <th style="width:80px;">Unid.</th>
                 <th style="width:110px;">Quantidade</th>
               </tr>
             </thead>
@@ -4703,7 +4715,8 @@ async function gerarFolha1OrdemDeServico(gruposOcultarProduto) {
         let qtd = (qtdInput?.value || "").trim();
         if (!qtd) qtd = "1";
 
-        return { utilizacao, descricao, qtd };
+        const unidade = tr.querySelector(".unidade-medida")?.textContent?.trim() || "—";
+        return { utilizacao, descricao, qtd, unidade };
       })
       .filter((x) => x.descricao && x.descricao !== "-");
 
@@ -4732,6 +4745,7 @@ async function gerarFolha1OrdemDeServico(gruposOcultarProduto) {
               <td class="num"></td>
               <td>${it.utilizacao || "-"}</td>
               <td>${it.descricao}</td>
+              <td class="qtd">${it.unidade || "—"}</td>
               <td class="qtd">${it.qtd}</td>
             </tr>
           `
@@ -4742,6 +4756,7 @@ async function gerarFolha1OrdemDeServico(gruposOcultarProduto) {
             <td class="num">1</td>
             <td>-</td>
             <td>-</td>
+            <td class="qtd">—</td>
             <td class="qtd">-</td>
           </tr>
         `;
@@ -4749,9 +4764,9 @@ async function gerarFolha1OrdemDeServico(gruposOcultarProduto) {
       const numItem = contadorGrupo++;
       const prazoFrase = [g.previsaoEntrega, g.informacoesProduto].filter(Boolean).join(" ");
       const prazoTexto = prazoFrase || "-";
-      const prazoFooterHTML = `<tr><td colspan="4" style="font-weight:700;font-size:20px;background:#f0f0f0;padding:6px 10px;border-top:1px solid #aaa;text-align:center;">Prazo Previsto:&nbsp;${prazoTexto}&nbsp;&nbsp;|&nbsp;&nbsp;Pedido:&nbsp;${numeroPedido}&nbsp;&nbsp;|&nbsp;&nbsp;ITEM&nbsp;${numItem}</td></tr>`;
+      const prazoFooterHTML = `<tr><td colspan="5" style="font-weight:700;font-size:20px;background:#f0f0f0;padding:6px 10px;border-top:1px solid #aaa;text-align:center;">Prazo Previsto:&nbsp;${prazoTexto}&nbsp;&nbsp;|&nbsp;&nbsp;Pedido:&nbsp;${numeroPedido}&nbsp;&nbsp;|&nbsp;&nbsp;ITEM&nbsp;${numItem}</td></tr>`;
       const obsRowHTML = g.resumoGrupo
-        ? `<tr><td colspan="4" class="obs"><strong>Observações:</strong><br>${g.resumoGrupo}</td></tr>`
+        ? `<tr><td colspan="5" class="obs"><strong>Observações:</strong><br>${g.resumoGrupo}</td></tr>`
         : "";
 
       return `
@@ -4767,6 +4782,7 @@ async function gerarFolha1OrdemDeServico(gruposOcultarProduto) {
                 <th style="width:44px;">#</th>
                 <th style="width:170px;">Utilização</th>
                 <th>Descrição</th>
+                <th style="width:80px;">Unid.</th>
                 <th style="width:110px;">Quantidade</th>
               </tr>
             </thead>
