@@ -215,7 +215,7 @@ function gerarHtmlTotalizador(nomeAmbiente, valores) {
       ${col('Impostos',            formatarMoedaBR(valores.campoValorImpostos),           pct(valores.campoValorImpostos))}
       ${col('Mg. Segurança',       formatarMoedaBR(margemSeguranca),                     pct(margemSeguranca))}
       ${col('Comissão Arquiteta',  formatarMoedaBR(comissaoArquiteta),                   pct(comissaoArquiteta))}
-      ${col('Negociação',          formatarMoedaBR(campoNegociacao),                     valores.campoValorFinal > 0 ? ((campoNegociacao / valores.campoValorFinal) * 100).toFixed(1) + '%' : '—')}
+      ${col('Negociação',          formatarMoedaBR(campoNegociacao),                     valores.campoValorFinal > 0 ? ((campoNegociacao / valores.campoValorFinal) * 100).toFixed(2) + '%' : '—')}
       ${col('Custo Material',      formatarMoedaBR(custoTotalMaterial),                  '—')}
       ${col('Valor Mínimo',        formatarMoedaBR(valores.campoValorMinimo),            '100%',                        'tot-card--min')}
       ${col('Valor Sugerido',      formatarMoedaBR(valores.campoValorFinal),             pct(valores.campoValorFinal),  'tot-card--key')}
