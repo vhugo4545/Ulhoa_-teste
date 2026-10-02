@@ -132,7 +132,7 @@ const nomesUnicos = new Set();
 
             (grupoSelecionado.itens || []).forEach(item => {
               const quantidadeCalculada = calcularQuantidadeDesejada(item, { groupId: ultimoBloco.id });
-              const quantidadeArredondada = Math.ceil(quantidadeCalculada || 1);
+              const quantidadeArredondada = Math.ceil(quantidadeCalculada || item.quantidade || 1);
               const custoUnitario = parseFloat(item.custo) || 0;
 
               // Calcula o valor final com base na quantidade arredondada
