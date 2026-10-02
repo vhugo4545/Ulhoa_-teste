@@ -192,7 +192,7 @@ function calcularValoresFinanceirosDiretoDaTabela(blocoId) {
 // =========================
 function gerarHtmlTotalizador(nomeAmbiente, valores) {
   const base = Number(valores.campoValorMinimo) || 1;
-  function pct(v) { return `${((Number(v||0)/base)*100).toFixed(1)}%`; }
+  function pct(v) { return `${((Number(v||0)/base)*100).toFixed(2)}%`; }
 
   const comissaoArquiteta  = Number(valores.comissao_arquiteta) || 0;
   const custoTotalMaterial = Number(valores.custoTotalMaterial) || 0;
