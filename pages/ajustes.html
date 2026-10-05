@@ -1036,6 +1036,13 @@
       return;
     }
 
+    const desbloqueadas = Object.entries(cfg).filter(([,v]) => v).map(([k]) => k);
+    const bloqueadas    = Object.entries(cfg).filter(([,v]) => !v).map(([k]) => k);
+    console.log("[kommo-trav] Salvando config:");
+    console.log("[kommo-trav] Desbloqueadas (true):", desbloqueadas);
+    console.log("[kommo-trav] Bloqueadas (false):", bloqueadas);
+    console.log("[kommo-trav] Objeto completo:", cfg);
+
     localStorage.setItem(TRAV_KOMMO_LS_KEY, JSON.stringify(cfg));
 
     const statusEl = document.getElementById("cfg-status-travamento-kommo");
