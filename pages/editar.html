@@ -250,80 +250,8 @@ async function verificarSePedidoFoiFinalizado() {
   }
 }
 
-// Status que travam a edição para não-admins
-const STATUS_TRAVADO_VENDEDOR = ["Pendente de aprovação"];
-
-async function verificarBloqueioAprovacaoGestor() {
-  const idProposta = new URLSearchParams(window.location.search).get("id");
-  if (!idProposta) return false;
-
-  const isAdmin = (localStorage.getItem("usuarioTipo") || "") === "admin";
-  if (isAdmin) return false; // gestores nunca ficam travados
-
-  try {
-    const resp = await fetch(
-      `https://ulhoa-0a02024d350a.herokuapp.com/api/propostas/${idProposta}`,
-      { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` }, cache: "no-store" }
-    );
-    if (!resp.ok) return false;
-    const proposta = await resp.json();
-    const status = String(proposta.statusOrcamento || "").trim();
-
-    if (!STATUS_TRAVADO_VENDEDOR.includes(status)) return false;
-
-    console.log(`🔒 Proposta travada (status: "${status}"). Bloqueando edição para vendedor.`);
-
-    // Desabilita todos os campos de entrada
-    document.querySelectorAll("input, select, textarea").forEach(el => {
-      el.disabled = true;
-      el.style.pointerEvents = "none";
-      el.style.opacity = "0.75";
-    });
-    document.querySelectorAll('[contenteditable="true"]').forEach(el => {
-      el.setAttribute("contenteditable", "false");
-      el.style.pointerEvents = "none";
-      el.style.opacity = "0.75";
-    });
-    document.querySelectorAll("[onclick]").forEach(el => {
-      el.dataset.onclickOriginal = el.getAttribute("onclick") || "";
-      el.removeAttribute("onclick");
-    });
-
-    // Oculta TODOS os botões do sidebar-footer, mantém apenas o link Listagem
-    document.querySelectorAll(".sidebar-footer .sidebar-button, .sidebar-footer button").forEach(btn => {
-      btn.style.display = "none";
-    });
-
-    // Banner de aviso no topo do conteúdo
-    if (!document.getElementById("aviso-bloqueio-gestor")) {
-      const aviso = document.createElement("div");
-      aviso.id = "aviso-bloqueio-gestor";
-      aviso.style.cssText = `
-        background:#fff3cd; color:#856404; border:1px solid #ffeeba;
-        padding:14px 18px; border-radius:10px; margin-bottom:16px;
-        font-weight:700; font-size:14px; display:flex; align-items:center; gap:10px;
-      `;
-      aviso.innerHTML = `
-        <span style="font-size:18px;">🔒</span>
-        <span>
-          Orçamento em aprovação (<strong>${status}</strong>). Edições bloqueadas.<br>
-          <span style="font-weight:400;font-size:13px;">Somente o gestor pode fazer alterações ou avançar o status.</span>
-        </span>
-      `;
-      const main = document.querySelector("main") || document.body;
-      main.insertBefore(aviso, main.firstChild);
-    }
-
-    return true;
-  } catch (e) {
-    console.warn("[bloqueio-gestor] Erro:", e.message);
-    return false;
-  }
-}
-
 document.addEventListener("DOMContentLoaded", async () => {
-  const travado = await verificarBloqueioAprovacaoGestor();
-  if (!travado) await verificarSePedidoFoiFinalizado();
+  await verificarSePedidoFoiFinalizado();
 });
 
   function abrirPopupVisualizarOP() {
