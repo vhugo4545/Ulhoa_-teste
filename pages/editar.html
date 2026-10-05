@@ -323,7 +323,21 @@ async function verificarBloqueioAprovacaoGestor() {
         const cfgKommo = window.CFG?.travamentoKommo ||
           (() => { try { return JSON.parse(localStorage.getItem("cfg_travamento_kommo")) || {}; } catch { return {}; } })();
         if (stageId && cfgKommo[stageId] === true) {
-          // Etapa da Kommo marcada como liberada → anula o bloqueio do status PDV
+          // Etapa da Kommo liberada → atualiza PDV permanentemente para o próximo status não travado
+          const STATUS_WORKFLOW = [
+            "Orçamento Iniciado", "Pendente de aprovação", "Aprovado Pelo Gestor",
+            "Enviado Para o Cliente", "Orçamento Aprovado pelo Cliente",
+            "Pedido Enviado para a Omie", "Pedido Finalizado"
+          ];
+          const idxAtual = STATUS_WORKFLOW.indexOf(status);
+          const proximoLivre = STATUS_WORKFLOW.slice(idxAtual + 1).find(s => !cfgTrav[s]);
+          if (proximoLivre) {
+            fetch(`https://ulhoa-0a02024d350a.herokuapp.com/api/propostas/${idProposta}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ statusOrcamento: proximoLivre })
+            }).catch(e => console.warn("[kommo-unlock] Erro ao atualizar status PDV:", e.message));
+          }
           return false;
         }
       }
