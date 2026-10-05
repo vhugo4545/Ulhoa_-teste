@@ -312,7 +312,7 @@ async function verificarBloqueioAprovacaoGestor() {
       return true;
     }
 
-    // Verifica etapa da Kommo
+    // Verifica etapa da Kommo (allow-list: etapas marcadas = permitidas)
     try {
       const kommoResp = await fetch(
         `https://kommo-server-9f1243cbe450.herokuapp.com/proposta/${idProposta}/lead`,
@@ -323,8 +323,10 @@ async function verificarBloqueioAprovacaoGestor() {
         const stageId = String(leadData.status_id || "");
         const cfgKommo = window.CFG?.travamentoKommo ||
           (() => { try { return JSON.parse(localStorage.getItem("cfg_travamento_kommo")) || {}; } catch { return {}; } })();
-        if (stageId && cfgKommo[stageId] === true) {
-          aplicarBloqueio("Etapa da Kommo bloqueada");
+        // Só aplica bloqueio se ao menos uma etapa estiver marcada como permitida
+        const algumaMarcada = Object.values(cfgKommo).some(v => v === true);
+        if (algumaMarcada && stageId && cfgKommo[stageId] !== true) {
+          aplicarBloqueio("Etapa da Kommo não liberada para edição");
           return true;
         }
       }
