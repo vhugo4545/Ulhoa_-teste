@@ -296,39 +296,7 @@ async function verificarBloqueioAprovacaoGestor() {
   }
 
   try {
-    // Verifica etapa da Kommo PRIMEIRO — etapa liberada anula qualquer bloqueio por status PDV
-    let kommoEtapaLiberada = false;
-    let kommoTemConfig = false;
-    try {
-      const kommoResp = await fetch(
-        `https://kommo-server-9f1243cbe450.herokuapp.com/proposta/${idProposta}/lead`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` } }
-      );
-      if (kommoResp.ok) {
-        const leadData = await kommoResp.json();
-        const stageId  = String(leadData.status_id || "");
-        const cfgKommo = window.CFG?.travamentoKommo ||
-          (() => { try { return JSON.parse(localStorage.getItem("cfg_travamento_kommo")) || {}; } catch { return {}; } })();
-        const algumaMarcada = Object.values(cfgKommo).some(v => v === true);
-        kommoTemConfig = algumaMarcada;
-        if (algumaMarcada && stageId) {
-          if (cfgKommo[stageId] === true) {
-            // Etapa liberada na Kommo → desbloqueia independente do status PDV
-            kommoEtapaLiberada = true;
-          } else {
-            // Etapa não liberada → trava
-            aplicarBloqueio("Etapa da Kommo não liberada para edição");
-            return true;
-          }
-        }
-      }
-    } catch (eKommo) {
-      console.warn("[bloqueio-kommo]", eKommo.message);
-    }
-
-    // Se a Kommo liberou explicitamente, não aplica bloqueio por status PDV
-    if (kommoEtapaLiberada) return false;
-
+    // 1. Verifica status PDV
     const resp = await fetch(
       `https://ulhoa-0a02024d350a.herokuapp.com/api/propostas/${idProposta}`,
       { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` }, cache: "no-store" }
@@ -340,12 +308,32 @@ async function verificarBloqueioAprovacaoGestor() {
     const cfgTrav = window.CFG?.travamentoCampos ||
       (() => { try { return JSON.parse(localStorage.getItem("cfg_travamento_campos")) || {}; } catch { return {}; } })();
 
-    if (cfgTrav[status]) {
-      aplicarBloqueio(status);
-      return true;
+    // Status PDV não trava → livre
+    if (!cfgTrav[status]) return false;
+
+    // 2. Status PDV travaria — verifica se etapa da Kommo desbloqueada anula
+    try {
+      const kommoResp = await fetch(
+        `https://kommo-server-9f1243cbe450.herokuapp.com/proposta/${idProposta}/lead`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` } }
+      );
+      if (kommoResp.ok) {
+        const leadData = await kommoResp.json();
+        const stageId  = String(leadData.status_id || "");
+        const cfgKommo = window.CFG?.travamentoKommo ||
+          (() => { try { return JSON.parse(localStorage.getItem("cfg_travamento_kommo")) || {}; } catch { return {}; } })();
+        if (stageId && cfgKommo[stageId] === true) {
+          // Etapa da Kommo marcada como liberada → anula o bloqueio do status PDV
+          return false;
+        }
+      }
+    } catch (eKommo) {
+      console.warn("[bloqueio-kommo]", eKommo.message);
     }
 
-    return false;
+    // 3. Nenhuma exceção Kommo → aplica bloqueio por status PDV
+    aplicarBloqueio(status);
+    return true;
   } catch (e) {
     console.warn("[bloqueio-gestor] Erro:", e.message);
     return false;
