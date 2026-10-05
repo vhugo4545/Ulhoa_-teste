@@ -257,20 +257,7 @@ async function verificarBloqueioAprovacaoGestor() {
   const isAdmin = (localStorage.getItem("usuarioTipo") || "") === "admin";
   if (isAdmin) return false;
 
-  try {
-    const resp = await fetch(
-      `https://ulhoa-0a02024d350a.herokuapp.com/api/propostas/${idProposta}`,
-      { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` }, cache: "no-store" }
-    );
-    if (!resp.ok) return false;
-    const proposta = await resp.json();
-    const status = String(proposta.statusOrcamento || "").trim();
-
-    const cfgTrav = window.CFG?.travamentoCampos ||
-      (() => { try { return JSON.parse(localStorage.getItem("cfg_travamento_campos")) || {}; } catch { return {}; } })();
-
-    if (!cfgTrav[status]) return false;
-
+  function aplicarBloqueio(motivo) {
     document.querySelectorAll("input, select, textarea").forEach(el => {
       el.disabled = true;
       el.style.pointerEvents = "none";
@@ -288,7 +275,6 @@ async function verificarBloqueioAprovacaoGestor() {
     document.querySelectorAll(".sidebar-footer .sidebar-button, .sidebar-footer button").forEach(btn => {
       btn.style.display = "none";
     });
-
     if (!document.getElementById("aviso-bloqueio-gestor")) {
       const aviso = document.createElement("div");
       aviso.id = "aviso-bloqueio-gestor";
@@ -300,15 +286,53 @@ async function verificarBloqueioAprovacaoGestor() {
       aviso.innerHTML = `
         <span style="font-size:18px;">🔒</span>
         <span>
-          Orçamento bloqueado (<strong>${status}</strong>). Edições não permitidas.<br>
+          Orçamento bloqueado (<strong>${motivo}</strong>). Edições não permitidas.<br>
           <span style="font-weight:400;font-size:13px;">Somente o gestor pode fazer alterações.</span>
         </span>
       `;
       const main = document.querySelector("main") || document.body;
       main.insertBefore(aviso, main.firstChild);
     }
+  }
 
-    return true;
+  try {
+    const resp = await fetch(
+      `https://ulhoa-0a02024d350a.herokuapp.com/api/propostas/${idProposta}`,
+      { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` }, cache: "no-store" }
+    );
+    if (!resp.ok) return false;
+    const proposta = await resp.json();
+    const status = String(proposta.statusOrcamento || "").trim();
+
+    const cfgTrav = window.CFG?.travamentoCampos ||
+      (() => { try { return JSON.parse(localStorage.getItem("cfg_travamento_campos")) || {}; } catch { return {}; } })();
+
+    if (cfgTrav[status]) {
+      aplicarBloqueio(status);
+      return true;
+    }
+
+    // Verifica etapa da Kommo
+    try {
+      const kommoResp = await fetch(
+        `https://kommo-server-9f1243cbe450.herokuapp.com/proposta/${idProposta}/lead`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` } }
+      );
+      if (kommoResp.ok) {
+        const leadData = await kommoResp.json();
+        const stageId = String(leadData.status_id || "");
+        const cfgKommo = window.CFG?.travamentoKommo ||
+          (() => { try { return JSON.parse(localStorage.getItem("cfg_travamento_kommo")) || {}; } catch { return {}; } })();
+        if (stageId && cfgKommo[stageId] === true) {
+          aplicarBloqueio("Etapa da Kommo bloqueada");
+          return true;
+        }
+      }
+    } catch (eKommo) {
+      console.warn("[bloqueio-kommo]", eKommo.message);
+    }
+
+    return false;
   } catch (e) {
     console.warn("[bloqueio-gestor] Erro:", e.message);
     return false;

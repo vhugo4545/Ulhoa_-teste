@@ -552,6 +552,34 @@
             Afeta apenas usuários comuns. Administradores sempre podem editar.
           </span>
         </div>
+
+        <!-- Seção dinâmica: Etapas da Kommo -->
+        <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="material-icons-outlined" style="font-size:17px;color:#6366f1;">account_tree</span>
+              <span style="font-size:13px;font-weight:700;color:#1e293b;">Etapas da Kommo</span>
+            </div>
+            <button onclick="kommoTravCarregar()" id="btn-kommo-reload"
+              style="border:none;background:#f1f5f9;color:#475569;border-radius:7px;padding:4px 10px;cursor:pointer;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;transition:background .15s;"
+              onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+              <span class="material-icons-outlined" style="font-size:14px;">refresh</span> Recarregar
+            </button>
+            <span id="kommo-trav-loading" style="font-size:11px;color:#94a3b8;display:none;">Carregando…</span>
+          </div>
+          <p style="font-size:12px;color:var(--text-muted);margin:0 0 14px;">
+            Marque as etapas do pipeline da Kommo em que os campos devem ficar <strong>bloqueados</strong> para usuários comuns.
+          </p>
+          <div id="kommo-trav-container" style="font-size:12px;color:#94a3b8;">
+            Clique em "Recarregar" para buscar as etapas.
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap;">
+            <button class="cfg-save-btn" onclick="salvarTravamentoKommo()">
+              <span class="material-icons-outlined">cloud_upload</span> Salvar Etapas
+            </button>
+            <span class="cfg-status" id="cfg-status-travamento-kommo"></span>
+          </div>
+        </div>
       </div>
 
       <!-- Card: Ajuste de Números de Orçamento/Pedido -->
@@ -869,6 +897,129 @@
       document.addEventListener("cfgapi:pronto", travRenderizar, { once: true });
       setTimeout(travRenderizar, 1500);
     }
+  });
+
+  // ── Travamento por Etapas da Kommo ──────────────────────────────────────────
+  const TRAV_KOMMO_LS_KEY = "cfg_travamento_kommo";
+  const KOMMO_SERVER_URL  = "https://kommo-server-9f1243cbe450.herokuapp.com";
+
+  function kommoTravCarregarConfig() {
+    const cfgServer = window.CFgAPI?.obter()?.travamentoKommo;
+    if (cfgServer && Object.keys(cfgServer).length) return cfgServer;
+    try { return JSON.parse(localStorage.getItem(TRAV_KOMMO_LS_KEY)) || {}; } catch { return {}; }
+  }
+
+  async function kommoTravCarregar() {
+    const container  = document.getElementById("kommo-trav-container");
+    const loadingEl  = document.getElementById("kommo-trav-loading");
+    const reloadBtn  = document.getElementById("btn-kommo-reload");
+    if (!container) return;
+
+    container.innerHTML = "";
+    container.style.color = "#94a3b8";
+    container.textContent = "Buscando etapas…";
+    if (loadingEl) loadingEl.style.display = "inline";
+    if (reloadBtn) reloadBtn.disabled = true;
+
+    const token = localStorage.getItem("accessToken") || "";
+    try {
+      const resp = await fetch(`${KOMMO_SERVER_URL}/kommo/pipelines`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const pipelines = await resp.json();
+      kommoTravRenderizar(pipelines);
+    } catch (e) {
+      container.style.color = "#ef4444";
+      container.textContent = `Erro ao carregar etapas: ${e.message}`;
+    } finally {
+      if (loadingEl) loadingEl.style.display = "none";
+      if (reloadBtn) reloadBtn.disabled = false;
+    }
+  }
+
+  function kommoTravRenderizar(pipelines) {
+    const container = document.getElementById("kommo-trav-container");
+    if (!container) return;
+    container.style.color = "";
+    container.innerHTML = "";
+
+    if (!pipelines || !pipelines.length) {
+      container.style.color = "#94a3b8";
+      container.textContent = "Nenhum pipeline encontrado.";
+      return;
+    }
+
+    const cfg = kommoTravCarregarConfig();
+
+    pipelines.forEach(pipeline => {
+      if (!pipeline.etapas || !pipeline.etapas.length) return;
+
+      const group = document.createElement("div");
+      group.style.cssText = "margin-bottom:18px;";
+
+      const header = document.createElement("div");
+      header.style.cssText = "font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border);";
+      header.textContent = pipeline.pipeline_name || `Pipeline ${pipeline.pipeline_id}`;
+      group.appendChild(header);
+
+      pipeline.etapas.forEach(etapa => {
+        const stageKey = String(etapa.status_id);
+        const row = document.createElement("label");
+        row.style.cssText = "display:flex;align-items:center;gap:10px;padding:6px 4px;cursor:pointer;border-radius:5px;transition:background .1s;";
+        row.onmouseover = () => row.style.background = "rgba(99,102,241,.06)";
+        row.onmouseout  = () => row.style.background = "";
+
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.dataset.stageId = stageKey;
+        cb.style.cssText = "width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-color:#6366f1;";
+        cb.checked = cfg[stageKey] === true;
+
+        const dot = document.createElement("span");
+        dot.style.cssText = `width:9px;height:9px;border-radius:50%;background:${etapa.cor || "#94a3b8"};flex-shrink:0;display:inline-block;`;
+
+        const labelText = document.createElement("span");
+        labelText.style.cssText = "font-size:12px;color:#334155;";
+        labelText.textContent = etapa.nome;
+
+        row.appendChild(cb);
+        row.appendChild(dot);
+        row.appendChild(labelText);
+        group.appendChild(row);
+      });
+
+      container.appendChild(group);
+    });
+  }
+
+  async function salvarTravamentoKommo() {
+    const cfg = {};
+    document.querySelectorAll("#kommo-trav-container input[type=checkbox]").forEach(cb => {
+      cfg[cb.dataset.stageId] = cb.checked;
+    });
+
+    if (!Object.keys(cfg).length) {
+      alert("Nenhuma etapa carregada. Clique em 'Recarregar' primeiro.");
+      return;
+    }
+
+    localStorage.setItem(TRAV_KOMMO_LS_KEY, JSON.stringify(cfg));
+
+    const statusEl = document.getElementById("cfg-status-travamento-kommo");
+    if (statusEl) statusEl.textContent = "Salvando…";
+
+    const cfgParcial = Object.assign({}, window.CFgAPI?.obter() || {}, { travamentoKommo: cfg });
+    const ok = await window.CFgAPI?.salvar(cfgParcial);
+
+    if (statusEl) {
+      statusEl.textContent = ok === false ? "Salvo localmente" : "Salvo!";
+      setTimeout(() => statusEl.textContent = "", 3000);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    kommoTravCarregar();
   });
   </script>
   <script>
