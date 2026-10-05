@@ -980,13 +980,23 @@
         const dot = document.createElement("span");
         dot.style.cssText = `width:9px;height:9px;border-radius:50%;background:${etapa.cor || "#94a3b8"};flex-shrink:0;display:inline-block;`;
 
+        const labelWrap = document.createElement("span");
+        labelWrap.style.cssText = "display:flex;flex-direction:column;";
+
         const labelText = document.createElement("span");
         labelText.style.cssText = "font-size:12px;color:#334155;";
         labelText.textContent = etapa.nome;
 
+        const labelId = document.createElement("span");
+        labelId.style.cssText = "font-size:10px;color:#94a3b8;font-family:monospace;";
+        labelId.textContent = "ID: " + stageKey;
+
+        labelWrap.appendChild(labelText);
+        labelWrap.appendChild(labelId);
+
         row.appendChild(cb);
         row.appendChild(dot);
-        row.appendChild(labelText);
+        row.appendChild(labelWrap);
         group.appendChild(row);
       });
 
