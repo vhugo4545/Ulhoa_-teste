@@ -972,7 +972,8 @@
 
         const cb = document.createElement("input");
         cb.type = "checkbox";
-        cb.dataset.stageId = stageKey;
+        cb.dataset.stageId   = stageKey;
+        cb.dataset.stageName = etapa.nome;
         cb.style.cssText = "width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-color:#6366f1;";
         cb.checked = cfg[stageKey] === true;
 
@@ -990,6 +991,27 @@
       });
 
       container.appendChild(group);
+    });
+
+    // Após renderizar tudo: listener único para detectar nomes iguais em outros pipelines
+    container.addEventListener("change", function(e) {
+      const cb = e.target;
+      if (cb.type !== "checkbox" || !cb.dataset.stageName) return;
+
+      const nome       = cb.dataset.stageName;
+      const novoEstado = cb.checked;
+
+      const outras = Array.from(
+        container.querySelectorAll("input[type=checkbox][data-stage-name]")
+      ).filter(o => o !== cb && o.dataset.stageName === nome && o.checked !== novoEstado);
+
+      if (!outras.length) return;
+
+      const acao = novoEstado ? "marcar" : "desmarcar";
+      const ok = confirm(
+        `Existem ${outras.length} etapa(s) com o nome "${nome}" em outros pipelines.\n\nDeseja ${acao} todas também?`
+      );
+      if (ok) outras.forEach(o => { o.checked = novoEstado; });
     });
   }
 
