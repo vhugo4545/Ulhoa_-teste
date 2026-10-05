@@ -952,48 +952,151 @@
 
     const cfg = kommoTravCarregarConfig();
 
-    pipelines.forEach(pipeline => {
-      if (!pipeline.etapas || !pipeline.etapas.length) return;
-
-      const group = document.createElement("div");
-      group.style.cssText = "margin-bottom:18px;";
-
-      const header = document.createElement("div");
-      header.style.cssText = "font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border);";
-      header.textContent = pipeline.pipeline_name || `Pipeline ${pipeline.pipeline_id}`;
-      group.appendChild(header);
-
-      pipeline.etapas.forEach(etapa => {
-        const stageKey = String(etapa.status_id);
-        const row = document.createElement("label");
-        row.style.cssText = "display:flex;align-items:center;gap:10px;padding:6px 4px;cursor:pointer;border-radius:5px;transition:background .1s;";
-        row.onmouseover = () => row.style.background = "rgba(99,102,241,.06)";
-        row.onmouseout  = () => row.style.background = "";
-
-        const cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.dataset.stageId   = stageKey;
-        cb.dataset.stageName = etapa.nome;
-        cb.style.cssText = "width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-color:#6366f1;";
-        cb.checked = cfg[stageKey] === true;
-
-        const dot = document.createElement("span");
-        dot.style.cssText = `width:9px;height:9px;border-radius:50%;background:${etapa.cor || "#94a3b8"};flex-shrink:0;display:inline-block;`;
-
-        const labelText = document.createElement("span");
-        labelText.style.cssText = "font-size:12px;color:#334155;";
-        labelText.textContent = etapa.nome;
-
-        row.appendChild(cb);
-        row.appendChild(dot);
-        row.appendChild(labelText);
-        group.appendChild(row);
+    // Agrupa por nome: stageName → [{pipeline_id, pipeline_name, status_id, cor}]
+    const nomeMap = new Map();
+    pipelines.forEach(p => {
+      (p.etapas || []).forEach(e => {
+        if (!nomeMap.has(e.nome)) nomeMap.set(e.nome, []);
+        nomeMap.get(e.nome).push({
+          pipeline_id:   p.pipeline_id,
+          pipeline_name: p.pipeline_name || `Pipeline ${p.pipeline_id}`,
+          status_id:     e.status_id,
+          cor:           e.cor || "#94a3b8"
+        });
       });
-
-      container.appendChild(group);
     });
 
-    // Após renderizar tudo: listener único para detectar nomes iguais em outros pipelines
+    const compartilhadas = [];
+    const exclusivasMap  = new Map(); // pipeline_id → {name, etapas[]}
+
+    nomeMap.forEach((entries, nome) => {
+      if (entries.length > 1) {
+        compartilhadas.push({ nome, entries });
+      } else {
+        const e = entries[0];
+        if (!exclusivasMap.has(e.pipeline_id))
+          exclusivasMap.set(e.pipeline_id, { name: e.pipeline_name, etapas: [] });
+        exclusivasMap.get(e.pipeline_id).etapas.push(e);
+      }
+    });
+
+    const thStyle = "padding:7px 10px;background:#f8fafc;border:1px solid var(--border);text-align:center;color:#475569;font-size:11px;white-space:nowrap;";
+    const tdStyle = "padding:6px 10px;border:1px solid var(--border);text-align:center;";
+
+    // ── Seção 1: Etapas compartilhadas (tabela lado a lado) ──────────────────
+    if (compartilhadas.length) {
+      const sec1 = document.createElement("div");
+      sec1.style.cssText = "font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:5px;";
+      sec1.innerHTML = `<span class="material-icons-outlined" style="font-size:14px;">compare_arrows</span> Etapas em múltiplos pipelines`;
+      container.appendChild(sec1);
+
+      // Pipelines que têm ao menos uma etapa compartilhada
+      const colPipelines = pipelines.filter(p =>
+        (p.etapas || []).some(e => nomeMap.get(e.nome)?.length > 1)
+      );
+
+      const wrap = document.createElement("div");
+      wrap.style.cssText = "overflow-x:auto;margin-bottom:22px;";
+
+      const table = document.createElement("table");
+      table.style.cssText = "width:100%;border-collapse:collapse;font-size:12px;";
+
+      // Cabeçalho
+      const thead = document.createElement("thead");
+      const trH   = document.createElement("tr");
+      const thNome = document.createElement("th");
+      thNome.style.cssText = "text-align:left;padding:7px 12px;background:#f8fafc;border:1px solid var(--border);color:#475569;font-size:11px;min-width:160px;";
+      thNome.textContent = "Etapa";
+      trH.appendChild(thNome);
+      colPipelines.forEach(p => {
+        const th = document.createElement("th");
+        th.style.cssText = thStyle;
+        th.textContent = p.pipeline_name || `Pipeline ${p.pipeline_id}`;
+        trH.appendChild(th);
+      });
+      thead.appendChild(trH);
+      table.appendChild(thead);
+
+      // Linhas
+      const tbody = document.createElement("tbody");
+      compartilhadas.forEach(({ nome, entries }) => {
+        const tr = document.createElement("tr");
+        const tdN = document.createElement("td");
+        tdN.style.cssText = "padding:7px 12px;border:1px solid var(--border);font-weight:600;color:#334155;";
+        const cor = entries[0].cor;
+        tdN.innerHTML = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${cor};margin-right:6px;vertical-align:middle;"></span>${nome}`;
+        tr.appendChild(tdN);
+
+        colPipelines.forEach(p => {
+          const td  = document.createElement("td");
+          td.style.cssText = tdStyle;
+          const match = entries.find(e => e.pipeline_id === p.pipeline_id);
+          if (match) {
+            const cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.dataset.stageId   = String(match.status_id);
+            cb.dataset.stageName = nome;
+            cb.style.cssText = "width:15px;height:15px;cursor:pointer;accent-color:#6366f1;";
+            cb.checked = cfg[String(match.status_id)] === true;
+            td.appendChild(cb);
+          } else {
+            td.style.color = "#cbd5e1";
+            td.textContent = "—";
+          }
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      wrap.appendChild(table);
+      container.appendChild(wrap);
+    }
+
+    // ── Seção 2: Etapas exclusivas por pipeline ──────────────────────────────
+    if (exclusivasMap.size) {
+      const sec2 = document.createElement("div");
+      sec2.style.cssText = "font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:5px;";
+      sec2.innerHTML = `<span class="material-icons-outlined" style="font-size:14px;">label</span> Etapas exclusivas por pipeline`;
+      container.appendChild(sec2);
+
+      exclusivasMap.forEach(({ name, etapas }) => {
+        const group = document.createElement("div");
+        group.style.cssText = "margin-bottom:14px;";
+
+        const header = document.createElement("div");
+        header.style.cssText = "font-size:11px;font-weight:700;color:#64748b;margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid var(--border);";
+        header.textContent = name;
+        group.appendChild(header);
+
+        etapas.forEach(etapa => {
+          const stageKey = String(etapa.status_id);
+          const row = document.createElement("label");
+          row.style.cssText = "display:flex;align-items:center;gap:10px;padding:5px 4px;cursor:pointer;border-radius:5px;transition:background .1s;";
+          row.onmouseover = () => row.style.background = "rgba(99,102,241,.06)";
+          row.onmouseout  = () => row.style.background = "";
+
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.dataset.stageId   = stageKey;
+          cb.dataset.stageName = etapa.nome;
+          cb.style.cssText = "width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-color:#6366f1;";
+          cb.checked = cfg[stageKey] === true;
+
+          const dot = document.createElement("span");
+          dot.style.cssText = `width:9px;height:9px;border-radius:50%;background:${etapa.cor};flex-shrink:0;display:inline-block;`;
+
+          const labelTxt = document.createElement("span");
+          labelTxt.style.cssText = "font-size:12px;color:#334155;";
+          labelTxt.textContent = etapa.nome;
+
+          row.appendChild(cb); row.appendChild(dot); row.appendChild(labelTxt);
+          group.appendChild(row);
+        });
+        container.appendChild(group);
+      });
+    }
+
+    // Listener: ao marcar na tabela, pergunta se quer aplicar aos demais da mesma linha
     container.addEventListener("change", function(e) {
       const cb = e.target;
       if (cb.type !== "checkbox" || !cb.dataset.stageName) return;
