@@ -514,6 +514,45 @@
         </div>
       </div>
 
+      <!-- Card: Travamento de Campos por Status -->
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-title">
+          <span class="material-icons-outlined">lock</span>
+          Travamento de Campos por Status
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;">
+          Marque os status em que os campos de edição devem ficar <strong>bloqueados</strong> para usuários comuns. Administradores nunca são bloqueados.
+        </p>
+
+        <div style="overflow-x:auto;">
+          <table id="tabela-travamento" style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:8px 12px;background:#475569;color:#fff;border:1px solid #334155;min-width:180px;">Ação</th>
+                <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Orc. Iniciado</th>
+                <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Pend. Aprovação</th>
+                <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Aprov. Gestor</th>
+                <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Enviado Cliente</th>
+                <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Aprov. Cliente</th>
+                <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Ped. Finalizado</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-travamento"></tbody>
+          </table>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap;">
+          <button class="cfg-save-btn" onclick="salvarTravamento()">
+            <span class="material-icons-outlined">cloud_upload</span> Salvar
+          </button>
+          <span class="cfg-status" id="cfg-status-travamento"></span>
+          <span style="font-size:11px;color:#64748b;display:flex;align-items:center;gap:4px;">
+            <span class="material-icons-outlined" style="font-size:14px;">info</span>
+            Afeta apenas usuários comuns. Administradores sempre podem editar.
+          </span>
+        </div>
+      </div>
+
       <!-- Card: Ajuste de Números de Orçamento/Pedido -->
       <div class="card" style="grid-column: 1 / -1; padding:0; overflow:hidden;">
 
@@ -755,6 +794,78 @@
       document.addEventListener("cfgapi:pronto", visRenderizar, { once: true });
       // fallback: se evento não disparar, renderiza mesmo assim
       setTimeout(visRenderizar, 1500);
+    }
+  });
+
+  // ── Travamento de Campos por Status ─────────────────────────────────────────
+  const TRAV_STATUS = [
+    { key: "Orçamento Iniciado",               label: "Orc. Iniciado"    },
+    { key: "Pendente de aprovação",             label: "Pend. Aprovação"  },
+    { key: "Aprovado Pelo Gestor",              label: "Aprov. Gestor"    },
+    { key: "Enviado Para o Cliente",            label: "Enviado Cliente"  },
+    { key: "Orçamento Aprovado pelo Cliente",   label: "Aprov. Cliente"   },
+    { key: "Pedido Finalizado",                 label: "Ped. Finalizado"  },
+  ];
+  const TRAV_LS_KEY = "cfg_travamento_campos";
+
+  function travCarregarConfig() {
+    const cfgServer = window.CFgAPI?.obter()?.travamentoCampos;
+    if (cfgServer) return cfgServer;
+    try { return JSON.parse(localStorage.getItem(TRAV_LS_KEY)) || {}; } catch { return {}; }
+  }
+
+  function travRenderizar() {
+    const cfg   = travCarregarConfig();
+    const tbody = document.getElementById("tbody-travamento");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    const tr = document.createElement("tr");
+
+    const tdLabel = document.createElement("td");
+    tdLabel.style.cssText = "padding:7px 12px;border:1px solid var(--border);font-weight:600;";
+    tdLabel.textContent = "Travar edição de campos";
+    tr.appendChild(tdLabel);
+
+    TRAV_STATUS.forEach(({ key }) => {
+      const td = document.createElement("td");
+      td.style.cssText = "padding:7px 10px;border:1px solid var(--border);text-align:center;";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.dataset.status = key;
+      cb.style.cssText = "width:16px;height:16px;cursor:pointer;";
+      cb.checked = cfg[key] === true;
+      td.appendChild(cb);
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  }
+
+  async function salvarTravamento() {
+    const cfg = {};
+    document.querySelectorAll("#tabela-travamento input[type=checkbox]").forEach(cb => {
+      cfg[cb.dataset.status] = cb.checked;
+    });
+
+    localStorage.setItem(TRAV_LS_KEY, JSON.stringify(cfg));
+
+    const statusEl = document.getElementById("cfg-status-travamento");
+    statusEl.textContent = "Salvando…";
+
+    const cfgParcial = Object.assign({}, window.CFgAPI?.obter() || {}, { travamentoCampos: cfg });
+    const ok = await window.CFgAPI?.salvar(cfgParcial);
+
+    statusEl.textContent = ok === false ? "Salvo localmente" : "Salvo!";
+    setTimeout(() => statusEl.textContent = "", 3000);
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.CFgAPI) {
+      travRenderizar();
+    } else {
+      document.addEventListener("cfgapi:pronto", travRenderizar, { once: true });
+      setTimeout(travRenderizar, 1500);
     }
   });
   </script>
