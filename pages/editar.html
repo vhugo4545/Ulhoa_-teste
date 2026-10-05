@@ -296,6 +296,39 @@ async function verificarBloqueioAprovacaoGestor() {
   }
 
   try {
+    // Verifica etapa da Kommo PRIMEIRO — etapa liberada anula qualquer bloqueio por status PDV
+    let kommoEtapaLiberada = false;
+    let kommoTemConfig = false;
+    try {
+      const kommoResp = await fetch(
+        `https://kommo-server-9f1243cbe450.herokuapp.com/proposta/${idProposta}/lead`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` } }
+      );
+      if (kommoResp.ok) {
+        const leadData = await kommoResp.json();
+        const stageId  = String(leadData.status_id || "");
+        const cfgKommo = window.CFG?.travamentoKommo ||
+          (() => { try { return JSON.parse(localStorage.getItem("cfg_travamento_kommo")) || {}; } catch { return {}; } })();
+        const algumaMarcada = Object.values(cfgKommo).some(v => v === true);
+        kommoTemConfig = algumaMarcada;
+        if (algumaMarcada && stageId) {
+          if (cfgKommo[stageId] === true) {
+            // Etapa liberada na Kommo → desbloqueia independente do status PDV
+            kommoEtapaLiberada = true;
+          } else {
+            // Etapa não liberada → trava
+            aplicarBloqueio("Etapa da Kommo não liberada para edição");
+            return true;
+          }
+        }
+      }
+    } catch (eKommo) {
+      console.warn("[bloqueio-kommo]", eKommo.message);
+    }
+
+    // Se a Kommo liberou explicitamente, não aplica bloqueio por status PDV
+    if (kommoEtapaLiberada) return false;
+
     const resp = await fetch(
       `https://ulhoa-0a02024d350a.herokuapp.com/api/propostas/${idProposta}`,
       { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` }, cache: "no-store" }
@@ -310,28 +343,6 @@ async function verificarBloqueioAprovacaoGestor() {
     if (cfgTrav[status]) {
       aplicarBloqueio(status);
       return true;
-    }
-
-    // Verifica etapa da Kommo (allow-list: etapas marcadas = permitidas)
-    try {
-      const kommoResp = await fetch(
-        `https://kommo-server-9f1243cbe450.herokuapp.com/proposta/${idProposta}/lead`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` } }
-      );
-      if (kommoResp.ok) {
-        const leadData = await kommoResp.json();
-        const stageId = String(leadData.status_id || "");
-        const cfgKommo = window.CFG?.travamentoKommo ||
-          (() => { try { return JSON.parse(localStorage.getItem("cfg_travamento_kommo")) || {}; } catch { return {}; } })();
-        // Só aplica bloqueio se ao menos uma etapa estiver marcada como permitida
-        const algumaMarcada = Object.values(cfgKommo).some(v => v === true);
-        if (algumaMarcada && stageId && cfgKommo[stageId] !== true) {
-          aplicarBloqueio("Etapa da Kommo não liberada para edição");
-          return true;
-        }
-      }
-    } catch (eKommo) {
-      console.warn("[bloqueio-kommo]", eKommo.message);
     }
 
     return false;
