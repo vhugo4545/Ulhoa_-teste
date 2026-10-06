@@ -256,8 +256,29 @@ function verificarBloqueioKommo() {
   const idProposta = new URLSearchParams(window.location.search).get("id");
   if (!idProposta) return;
 
+  const KOMMO = "https://kommo-server-9f1243cbe450.herokuapp.com";
+
+  function mostrarBanner(bloqueado, nomeEtapa) {
+    const existente = document.getElementById("aviso-bloqueio-kommo");
+    if (existente) existente.remove();
+    const aviso = document.createElement("div");
+    aviso.id = "aviso-bloqueio-kommo";
+    if (bloqueado) {
+      aviso.innerHTML = `
+        <div style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:14px 18px;border-radius:10px;margin-bottom:16px;font-weight:700;font-size:14px;">
+          🔒 Orçamento bloqueado — etapa: <strong>${nomeEtapa}</strong>
+        </div>`;
+    } else {
+      aviso.innerHTML = `
+        <div style="background:#dcfce7;color:#166534;border:1px solid #86efac;padding:14px 18px;border-radius:10px;margin-bottom:16px;font-weight:700;font-size:14px;">
+          🔓 Orçamento desbloqueado — etapa: <strong>${nomeEtapa}</strong>
+        </div>`;
+    }
+    const main = document.querySelector("main") || document.body;
+    main.insertBefore(aviso, main.firstChild);
+  }
+
   function aplicarBloqueio() {
-    if (document.getElementById("aviso-bloqueio-kommo")) return;
     document.querySelectorAll("input, select, textarea, button").forEach(el => {
       if (el.id === "btn-pedido-finalizado") return;
       el.disabled = true;
@@ -276,32 +297,32 @@ function verificarBloqueioKommo() {
       el.dataset.onclickOriginal = el.getAttribute("onclick") || "";
       el.removeAttribute("onclick");
     });
-    const aviso = document.createElement("div");
-    aviso.id = "aviso-bloqueio-kommo";
-    aviso.innerHTML = `
-      <div style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:14px 18px;border-radius:10px;margin-bottom:16px;font-weight:700;font-size:14px;">
-        🔒 Orçamento bloqueado — a etapa atual na Kommo está configurada como bloqueada.
-      </div>
-    `;
-    const main = document.querySelector("main") || document.body;
-    main.insertBefore(aviso, main.firstChild);
-    console.log("[kommo-lock] Bloqueio aplicado — etapa da Kommo está bloqueada.");
   }
 
   function checar() {
-    const cfgKommo = window.CFgAPI?.obter()?.travamentoKommo;
-    if (!cfgKommo || !Object.keys(cfgKommo).length) return;
-
+    const cfgKommo = window.CFgAPI?.obter()?.travamentoKommo || {};
     const token = localStorage.getItem("accessToken") || "";
-    fetch(`https://kommo-server-9f1243cbe450.herokuapp.com/proposta/${idProposta}/lead`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(r => r.ok ? r.json() : null)
-    .then(lead => {
+
+    Promise.all([
+      fetch(`${KOMMO}/proposta/${idProposta}/lead`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null),
+      fetch(`${KOMMO}/kommo/pipelines`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : [])
+    ])
+    .then(([lead, pipelines]) => {
       if (!lead) return;
       const statusId = String(lead.status_id);
-      console.log(`[kommo-lock] Etapa atual: ${statusId} — bloqueada: ${cfgKommo[statusId] === true}`);
-      if (cfgKommo[statusId] === true) aplicarBloqueio();
+
+      let nomeEtapa = statusId;
+      for (const p of (pipelines || [])) {
+        const etapa = (p.etapas || []).find(e => String(e.status_id) === statusId);
+        if (etapa) { nomeEtapa = etapa.nome; break; }
+      }
+
+      const bloqueado = cfgKommo[statusId] === true;
+      console.log(`[kommo-lock] Etapa: ${nomeEtapa} (${statusId}) — bloqueada: ${bloqueado}`);
+      mostrarBanner(bloqueado, nomeEtapa);
+      if (bloqueado) aplicarBloqueio();
     })
     .catch(e => console.warn("[kommo-lock] Erro ao verificar etapa:", e.message));
   }
