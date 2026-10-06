@@ -34,9 +34,11 @@ function verificarBloqueioKommo() {
     main.insertBefore(aviso, main.firstChild);
   }
 
+  const IDS_LIVRES = new Set(["btn-pedido-finalizado", "btn-visualizar-proposta", "btn-folhas-impressao"]);
+
   function aplicarBloqueio() {
     document.querySelectorAll("input, select, textarea, button").forEach(el => {
-      if (el.id === "btn-pedido-finalizado") return;
+      if (IDS_LIVRES.has(el.id)) return;
       el.disabled = true;
       el.setAttribute("readonly", "readonly");
       el.style.pointerEvents = "none";
@@ -49,7 +51,7 @@ function verificarBloqueioKommo() {
       el.style.opacity = "0.85";
     });
     document.querySelectorAll("[onclick]").forEach(el => {
-      if (el.id === "btn-pedido-finalizado") return;
+      if (IDS_LIVRES.has(el.id)) return;
       el.dataset.onclickOriginal = el.getAttribute("onclick") || "";
       el.removeAttribute("onclick");
     });
