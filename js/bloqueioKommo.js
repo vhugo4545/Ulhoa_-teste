@@ -14,15 +14,17 @@ function verificarBloqueioKommo() {
     return;
   }
 
-  function mostrarBanner(bloqueado, nomeEtapa) {
+  function mostrarBanner(bloqueado, nomeEtapa, bloquearPdfs) {
     const existente = document.getElementById("aviso-bloqueio-kommo");
     if (existente) existente.remove();
     const aviso = document.createElement("div");
     aviso.id = "aviso-bloqueio-kommo";
     if (bloqueado) {
+      const detalhe = bloquearPdfs ? "ajustes e PDFs bloqueados" : "ajustes bloqueados · PDFs liberados";
       aviso.innerHTML = `
         <div style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:14px 18px;border-radius:10px;margin-bottom:16px;font-weight:700;font-size:14px;">
           🔒 Orçamento bloqueado — etapa: <strong>${nomeEtapa}</strong>
+          <span style="font-weight:400;font-size:12px;margin-left:8px;">(${detalhe})</span>
         </div>`;
     } else {
       aviso.innerHTML = `
@@ -34,11 +36,14 @@ function verificarBloqueioKommo() {
     main.insertBefore(aviso, main.firstChild);
   }
 
-  const IDS_LIVRES = new Set(["btn-pedido-finalizado", "btn-visualizar-proposta", "btn-folhas-impressao"]);
-
-  function aplicarBloqueio() {
+  function aplicarBloqueio(bloquearPdfs) {
+    const idsLivres = new Set(["btn-pedido-finalizado"]);
+    if (!bloquearPdfs) {
+      idsLivres.add("btn-visualizar-proposta");
+      idsLivres.add("btn-folhas-impressao");
+    }
     document.querySelectorAll("input, select, textarea, button").forEach(el => {
-      if (IDS_LIVRES.has(el.id)) return;
+      if (idsLivres.has(el.id)) return;
       el.disabled = true;
       el.setAttribute("readonly", "readonly");
       el.style.pointerEvents = "none";
@@ -51,7 +56,7 @@ function verificarBloqueioKommo() {
       el.style.opacity = "0.85";
     });
     document.querySelectorAll("[onclick]").forEach(el => {
-      if (IDS_LIVRES.has(el.id)) return;
+      if (idsLivres.has(el.id)) return;
       el.dataset.onclickOriginal = el.getAttribute("onclick") || "";
       el.removeAttribute("onclick");
     });
@@ -82,12 +87,14 @@ function verificarBloqueioKommo() {
         if (etapa) { nomeEtapa = etapa.nome; break; }
       }
 
-      const bloqueado = cfgKommo[statusId] === true;
-      console.log(`[kommo-lock] Etapa: ${nomeEtapa} (${statusId}) — bloqueada: ${bloqueado}`);
+      const tipoBloqueio = cfgKommo[statusId]; // false | "ajustes" | "tudo"
+      const bloqueado    = tipoBloqueio === "ajustes" || tipoBloqueio === "tudo";
+      const bloquearPdfs = tipoBloqueio === "tudo";
+      console.log(`[kommo-lock] Etapa: ${nomeEtapa} (${statusId}) — tipo: ${tipoBloqueio || "livre"}`);
       console.log("[kommo-lock] Config travamentoKommo:", cfgKommo);
 
-      mostrarBanner(bloqueado, nomeEtapa);
-      if (bloqueado) aplicarBloqueio();
+      mostrarBanner(bloqueado, nomeEtapa, bloquearPdfs);
+      if (bloqueado) aplicarBloqueio(bloquearPdfs);
     })
     .catch(e => console.warn("[kommo-lock] Erro ao verificar etapa:", e.message));
   }

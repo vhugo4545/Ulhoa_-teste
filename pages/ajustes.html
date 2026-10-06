@@ -864,18 +864,20 @@
         row.onmouseover = () => row.style.background = "rgba(99,102,241,.06)";
         row.onmouseout  = () => row.style.background = "";
 
+        const cfgVal = cfg[stageKey]; // false | "ajustes" | "tudo"
+
         const cb = document.createElement("input");
         cb.type = "checkbox";
         cb.dataset.stageId   = stageKey;
         cb.dataset.stageName = etapa.nome;
         cb.style.cssText = "width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-color:#ef4444;";
-        cb.checked = cfg[stageKey] === true; // true = bloqueado
+        cb.checked = !!cfgVal;
 
         const dot = document.createElement("span");
         dot.style.cssText = `width:9px;height:9px;border-radius:50%;background:${etapa.cor || "#94a3b8"};flex-shrink:0;display:inline-block;`;
 
         const labelWrap = document.createElement("span");
-        labelWrap.style.cssText = "display:flex;flex-direction:column;";
+        labelWrap.style.cssText = "display:flex;flex-direction:column;flex:1;";
 
         const labelText = document.createElement("span");
         labelText.style.cssText = "font-size:12px;color:#334155;";
@@ -888,9 +890,20 @@
         labelWrap.appendChild(labelText);
         labelWrap.appendChild(labelId);
 
+        const sel = document.createElement("select");
+        sel.dataset.stageId = stageKey;
+        sel.dataset.tipoBloqueio = "1";
+        sel.style.cssText = `font-size:11px;border:1px solid #e2e8f0;border-radius:5px;padding:2px 6px;color:#475569;cursor:pointer;display:${cb.checked ? "inline-block" : "none"};`;
+        sel.innerHTML = `
+          <option value="ajustes" ${cfgVal === "ajustes" || !cfgVal ? "selected" : ""}>🔒 Ajustes (PDFs livres)</option>
+          <option value="tudo"    ${cfgVal === "tudo"    ? "selected" : ""}>🔒 Tudo (bloqueia PDFs)</option>
+        `;
+        cb.addEventListener("change", () => { sel.style.display = cb.checked ? "inline-block" : "none"; });
+
         row.appendChild(cb);
         row.appendChild(dot);
         row.appendChild(labelWrap);
+        row.appendChild(sel);
         group.appendChild(row);
       });
 
@@ -922,7 +935,12 @@
   async function salvarTravamentoKommo() {
     const cfg = {};
     document.querySelectorAll("#kommo-trav-container input[type=checkbox]").forEach(cb => {
-      cfg[cb.dataset.stageId] = cb.checked;
+      if (cb.checked) {
+        const sel = document.querySelector(`select[data-stage-id="${cb.dataset.stageId}"][data-tipo-bloqueio]`);
+        cfg[cb.dataset.stageId] = sel ? sel.value : "ajustes";
+      } else {
+        cfg[cb.dataset.stageId] = false;
+      }
     });
 
     if (!Object.keys(cfg).length) {
@@ -930,11 +948,11 @@
       return;
     }
 
-    const bloqueadas = Object.entries(cfg).filter(([,v]) => v).map(([k]) => k);
+    const bloqueadas = Object.entries(cfg).filter(([,v]) => v).map(([k,v]) => `${k}(${v})`);
     const livres     = Object.entries(cfg).filter(([,v]) => !v).map(([k]) => k);
     console.log("[kommo-trav] Salvando config:");
-    console.log("[kommo-trav] Bloqueadas (true):", bloqueadas);
-    console.log("[kommo-trav] Livres (false):", livres);
+    console.log("[kommo-trav] Bloqueadas:", bloqueadas);
+    console.log("[kommo-trav] Livres:", livres);
     console.log("[kommo-trav] Objeto completo:", cfg);
 
     localStorage.setItem(TRAV_KOMMO_LS_KEY, JSON.stringify(cfg));
