@@ -251,91 +251,19 @@ async function verificarSePedidoFoiFinalizado() {
 }
 
 function verificarBloqueioKommo() {
-  if (localStorage.getItem("usuarioTipo") === "admin") return;
-
   const idProposta = new URLSearchParams(window.location.search).get("id");
   if (!idProposta) return;
 
   const KOMMO = "https://kommo-server-9f1243cbe450.herokuapp.com";
+  const token  = localStorage.getItem("accessToken") || "";
 
-  function mostrarBanner(bloqueado, nomeEtapa) {
-    const existente = document.getElementById("aviso-bloqueio-kommo");
-    if (existente) existente.remove();
-    const aviso = document.createElement("div");
-    aviso.id = "aviso-bloqueio-kommo";
-    if (bloqueado) {
-      aviso.innerHTML = `
-        <div style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:14px 18px;border-radius:10px;margin-bottom:16px;font-weight:700;font-size:14px;">
-          🔒 Orçamento bloqueado — etapa: <strong>${nomeEtapa}</strong>
-        </div>`;
-    } else {
-      aviso.innerHTML = `
-        <div style="background:#dcfce7;color:#166534;border:1px solid #86efac;padding:14px 18px;border-radius:10px;margin-bottom:16px;font-weight:700;font-size:14px;">
-          🔓 Orçamento desbloqueado — etapa: <strong>${nomeEtapa}</strong>
-        </div>`;
-    }
-    const main = document.querySelector("main") || document.body;
-    main.insertBefore(aviso, main.firstChild);
-  }
-
-  function aplicarBloqueio() {
-    document.querySelectorAll("input, select, textarea, button").forEach(el => {
-      if (el.id === "btn-pedido-finalizado") return;
-      el.disabled = true;
-      el.setAttribute("readonly", "readonly");
-      el.style.pointerEvents = "none";
-      el.style.opacity = "0.85";
-      el.style.cursor = "not-allowed";
-    });
-    document.querySelectorAll('[contenteditable="true"]').forEach(el => {
-      el.setAttribute("contenteditable", "false");
-      el.style.pointerEvents = "none";
-      el.style.opacity = "0.85";
-    });
-    document.querySelectorAll("[onclick]").forEach(el => {
-      if (el.id === "btn-pedido-finalizado") return;
-      el.dataset.onclickOriginal = el.getAttribute("onclick") || "";
-      el.removeAttribute("onclick");
-    });
-  }
-
-  function checar() {
-    // Usa CFgAPI se já carregou do servidor, senão cai no localStorage
-    const cfgServer = window.CFgAPI?.obter()?.travamentoKommo;
-    const cfgKommo = (cfgServer && Object.keys(cfgServer).length)
-      ? cfgServer
-      : (() => { try { return JSON.parse(localStorage.getItem("cfg_travamento_kommo")) || {}; } catch { return {}; } })();
-
-    const token = localStorage.getItem("accessToken") || "";
-
-    Promise.all([
-      fetch(`${KOMMO}/proposta/${idProposta}/lead`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : null),
-      fetch(`${KOMMO}/kommo/pipelines`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : [])
-    ])
-    .then(([lead, pipelines]) => {
-      if (!lead) return;
-      const statusId = String(lead.status_id);
-
-      let nomeEtapa = statusId;
-      for (const p of (pipelines || [])) {
-        const etapa = (p.etapas || []).find(e => String(e.status_id) === statusId);
-        if (etapa) { nomeEtapa = etapa.nome; break; }
-      }
-
-      const bloqueado = cfgKommo[statusId] === true;
-      console.log(`[kommo-lock] Etapa: ${nomeEtapa} (${statusId}) — bloqueada: ${bloqueado}`);
-      mostrarBanner(bloqueado, nomeEtapa);
-      if (bloqueado) aplicarBloqueio();
+  fetch(`${KOMMO}/proposta/${idProposta}/lead`, { headers: { Authorization: `Bearer ${token}` } })
+    .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+    .then(lead => {
+      console.log("[kommo-lock] Resposta do lead:", lead);
+      console.log(`[kommo-lock] status_id atual: ${lead.status_id}`);
     })
-    .catch(e => console.warn("[kommo-lock] Erro ao verificar etapa:", e.message));
-  }
-
-  // Roda imediatamente (usa localStorage se servidor ainda não respondeu)
-  checar();
-  // Re-roda quando o servidor confirmar a config (garante dados atualizados)
-  document.addEventListener("cfgapi:pronto", () => checar(), { once: true });
+    .catch(e => console.warn("[kommo-lock] Erro ao buscar lead:", e));
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
