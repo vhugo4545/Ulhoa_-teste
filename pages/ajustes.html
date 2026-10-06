@@ -514,71 +514,38 @@
         </div>
       </div>
 
-      <!-- Card: Travamento de Campos por Status -->
+      <!-- Card: Bloqueio por Etapa da Kommo -->
       <div class="card" style="grid-column: 1 / -1;">
         <div class="card-title">
-          <span class="material-icons-outlined">lock</span>
-          Travamento de Campos por Status
+          <span class="material-icons-outlined">account_tree</span>
+          Bloqueio por Etapa da Kommo
         </div>
         <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;">
-          Marque os status em que os campos de edição devem ficar <strong>bloqueados</strong> para usuários comuns. Administradores nunca são bloqueados.
+          Marque as etapas em que o orçamento deve ficar <strong>bloqueado</strong> para usuários comuns. Etapas não marcadas permitem edição normalmente. Administradores nunca são bloqueados.
         </p>
 
-        <div style="overflow-x:auto;">
-          <table id="tabela-travamento" style="width:100%;border-collapse:collapse;font-size:12px;">
-            <thead>
-              <tr>
-                <th style="text-align:left;padding:8px 12px;background:#475569;color:#fff;border:1px solid #334155;min-width:180px;">Ação</th>
-                <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Orc. Iniciado</th>
-                <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Pend. Aprovação</th>
-                <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Aprov. Gestor</th>
-                <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Enviado Cliente</th>
-                <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Aprov. Cliente</th>
-                <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Env. Omie</th>
-                <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Ped. Finalizado</th>
-              </tr>
-            </thead>
-            <tbody id="tbody-travamento"></tbody>
-          </table>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+          <button onclick="kommoTravCarregar()" id="btn-kommo-reload"
+            style="border:none;background:#f1f5f9;color:#475569;border-radius:7px;padding:5px 12px;cursor:pointer;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;transition:background .15s;"
+            onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+            <span class="material-icons-outlined" style="font-size:15px;">refresh</span> Recarregar Etapas
+          </button>
+          <span id="kommo-trav-loading" style="font-size:11px;color:#94a3b8;display:none;">Carregando…</span>
+        </div>
+
+        <div id="kommo-trav-container" style="font-size:12px;color:#94a3b8;">
+          Clique em "Recarregar Etapas" para buscar os pipelines da Kommo.
         </div>
 
         <div style="display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap;">
-          <button class="cfg-save-btn" onclick="salvarTravamento()">
+          <button class="cfg-save-btn" onclick="salvarTravamentoKommo()">
             <span class="material-icons-outlined">cloud_upload</span> Salvar
           </button>
-          <span class="cfg-status" id="cfg-status-travamento"></span>
+          <span class="cfg-status" id="cfg-status-travamento-kommo"></span>
           <span style="font-size:11px;color:#64748b;display:flex;align-items:center;gap:4px;">
             <span class="material-icons-outlined" style="font-size:14px;">info</span>
             Afeta apenas usuários comuns. Administradores sempre podem editar.
           </span>
-        </div>
-
-        <!-- Seção dinâmica: Etapas da Kommo -->
-        <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px;">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span class="material-icons-outlined" style="font-size:17px;color:#6366f1;">account_tree</span>
-              <span style="font-size:13px;font-weight:700;color:#1e293b;">Etapas da Kommo</span>
-            </div>
-            <button onclick="kommoTravCarregar()" id="btn-kommo-reload"
-              style="border:none;background:#f1f5f9;color:#475569;border-radius:7px;padding:4px 10px;cursor:pointer;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;transition:background .15s;"
-              onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
-              <span class="material-icons-outlined" style="font-size:14px;">refresh</span> Recarregar
-            </button>
-            <span id="kommo-trav-loading" style="font-size:11px;color:#94a3b8;display:none;">Carregando…</span>
-          </div>
-          <p style="font-size:12px;color:var(--text-muted);margin:0 0 14px;">
-            Marque as etapas em que os campos ficam <strong>desbloqueados</strong> (editáveis) para usuários comuns. Etapas não marcadas ficam bloqueadas automaticamente. Se nenhuma etapa estiver marcada, nenhum bloqueio por Kommo é aplicado.
-          </p>
-          <div id="kommo-trav-container" style="font-size:12px;color:#94a3b8;">
-            Clique em "Recarregar" para buscar as etapas.
-          </div>
-          <div style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap;">
-            <button class="cfg-save-btn" onclick="salvarTravamentoKommo()">
-              <span class="material-icons-outlined">cloud_upload</span> Salvar Etapas
-            </button>
-            <span class="cfg-status" id="cfg-status-travamento-kommo"></span>
-          </div>
         </div>
       </div>
 
@@ -826,79 +793,6 @@
     }
   });
 
-  // ── Travamento de Campos por Status ─────────────────────────────────────────
-  const TRAV_STATUS = [
-    { key: "Orçamento Iniciado",               label: "Orc. Iniciado"    },
-    { key: "Pendente de aprovação",             label: "Pend. Aprovação"  },
-    { key: "Aprovado Pelo Gestor",              label: "Aprov. Gestor"    },
-    { key: "Enviado Para o Cliente",            label: "Enviado Cliente"  },
-    { key: "Orçamento Aprovado pelo Cliente",   label: "Aprov. Cliente"   },
-    { key: "Pedido Enviado para a Omie",        label: "Env. Omie"        },
-    { key: "Pedido Finalizado",                 label: "Ped. Finalizado"  },
-  ];
-  const TRAV_LS_KEY = "cfg_travamento_campos";
-
-  function travCarregarConfig() {
-    const cfgServer = window.CFgAPI?.obter()?.travamentoCampos;
-    if (cfgServer) return cfgServer;
-    try { return JSON.parse(localStorage.getItem(TRAV_LS_KEY)) || {}; } catch { return {}; }
-  }
-
-  function travRenderizar() {
-    const cfg   = travCarregarConfig();
-    const tbody = document.getElementById("tbody-travamento");
-    if (!tbody) return;
-    tbody.innerHTML = "";
-
-    const tr = document.createElement("tr");
-
-    const tdLabel = document.createElement("td");
-    tdLabel.style.cssText = "padding:7px 12px;border:1px solid var(--border);font-weight:600;";
-    tdLabel.textContent = "Travar edição de campos";
-    tr.appendChild(tdLabel);
-
-    TRAV_STATUS.forEach(({ key }) => {
-      const td = document.createElement("td");
-      td.style.cssText = "padding:7px 10px;border:1px solid var(--border);text-align:center;";
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.dataset.status = key;
-      cb.style.cssText = "width:16px;height:16px;cursor:pointer;";
-      cb.checked = cfg[key] === true;
-      td.appendChild(cb);
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
-  }
-
-  async function salvarTravamento() {
-    const cfg = {};
-    document.querySelectorAll("#tabela-travamento input[type=checkbox]").forEach(cb => {
-      cfg[cb.dataset.status] = cb.checked;
-    });
-
-    localStorage.setItem(TRAV_LS_KEY, JSON.stringify(cfg));
-
-    const statusEl = document.getElementById("cfg-status-travamento");
-    statusEl.textContent = "Salvando…";
-
-    const cfgParcial = Object.assign({}, window.CFgAPI?.obter() || {}, { travamentoCampos: cfg });
-    const ok = await window.CFgAPI?.salvar(cfgParcial);
-
-    statusEl.textContent = ok === false ? "Salvo localmente" : "Salvo!";
-    setTimeout(() => statusEl.textContent = "", 3000);
-  }
-
-  document.addEventListener("DOMContentLoaded", function () {
-    if (window.CFgAPI) {
-      travRenderizar();
-    } else {
-      document.addEventListener("cfgapi:pronto", travRenderizar, { once: true });
-      setTimeout(travRenderizar, 1500);
-    }
-  });
-
   // ── Travamento por Etapas da Kommo ──────────────────────────────────────────
   const TRAV_KOMMO_LS_KEY = "cfg_travamento_kommo";
   const KOMMO_SERVER_URL  = "https://kommo-server-9f1243cbe450.herokuapp.com";
@@ -974,8 +868,8 @@
         cb.type = "checkbox";
         cb.dataset.stageId   = stageKey;
         cb.dataset.stageName = etapa.nome;
-        cb.style.cssText = "width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-color:#6366f1;";
-        cb.checked = cfg[stageKey] === true;
+        cb.style.cssText = "width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-color:#ef4444;";
+        cb.checked = cfg[stageKey] === true; // true = bloqueado
 
         const dot = document.createElement("span");
         dot.style.cssText = `width:9px;height:9px;border-radius:50%;background:${etapa.cor || "#94a3b8"};flex-shrink:0;display:inline-block;`;
@@ -1036,11 +930,11 @@
       return;
     }
 
-    const desbloqueadas = Object.entries(cfg).filter(([,v]) => v).map(([k]) => k);
-    const bloqueadas    = Object.entries(cfg).filter(([,v]) => !v).map(([k]) => k);
+    const bloqueadas = Object.entries(cfg).filter(([,v]) => v).map(([k]) => k);
+    const livres     = Object.entries(cfg).filter(([,v]) => !v).map(([k]) => k);
     console.log("[kommo-trav] Salvando config:");
-    console.log("[kommo-trav] Desbloqueadas (true):", desbloqueadas);
-    console.log("[kommo-trav] Bloqueadas (false):", bloqueadas);
+    console.log("[kommo-trav] Bloqueadas (true):", bloqueadas);
+    console.log("[kommo-trav] Livres (false):", livres);
     console.log("[kommo-trav] Objeto completo:", cfg);
 
     localStorage.setItem(TRAV_KOMMO_LS_KEY, JSON.stringify(cfg));
