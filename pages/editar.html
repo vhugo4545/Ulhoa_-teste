@@ -251,10 +251,18 @@ async function verificarSePedidoFoiFinalizado() {
 }
 
 function verificarBloqueioKommo() {
-  if (localStorage.getItem("usuarioTipo") === "admin") return;
+  const tipoUsuario = localStorage.getItem("usuarioTipo") || "(não definido)";
+  const idProposta  = new URLSearchParams(window.location.search).get("id");
+  console.log(`[kommo-lock] usuarioTipo: ${tipoUsuario} | idProposta: ${idProposta}`);
 
-  const idProposta = new URLSearchParams(window.location.search).get("id");
-  if (!idProposta) return;
+  if (tipoUsuario === "admin") {
+    console.log("[kommo-lock] Admin detectado — bloqueio não aplicado.");
+    return;
+  }
+  if (!idProposta) {
+    console.warn("[kommo-lock] ID da proposta não encontrado na URL.");
+    return;
+  }
 
   const KOMMO = "https://kommo-server-9f1243cbe450.herokuapp.com";
 
