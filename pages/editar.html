@@ -300,7 +300,12 @@ function verificarBloqueioKommo() {
   }
 
   function checar() {
-    const cfgKommo = window.CFgAPI?.obter()?.travamentoKommo || {};
+    // Usa CFgAPI se já carregou do servidor, senão cai no localStorage
+    const cfgServer = window.CFgAPI?.obter()?.travamentoKommo;
+    const cfgKommo = (cfgServer && Object.keys(cfgServer).length)
+      ? cfgServer
+      : (() => { try { return JSON.parse(localStorage.getItem("cfg_travamento_kommo")) || {}; } catch { return {}; } })();
+
     const token = localStorage.getItem("accessToken") || "";
 
     Promise.all([
@@ -327,12 +332,10 @@ function verificarBloqueioKommo() {
     .catch(e => console.warn("[kommo-lock] Erro ao verificar etapa:", e.message));
   }
 
-  if (window.CFgAPI) {
-    checar();
-  } else {
-    document.addEventListener("cfgapi:pronto", checar, { once: true });
-    setTimeout(checar, 1500);
-  }
+  // Roda imediatamente (usa localStorage se servidor ainda não respondeu)
+  checar();
+  // Re-roda quando o servidor confirmar a config (garante dados atualizados)
+  document.addEventListener("cfgapi:pronto", () => checar(), { once: true });
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
