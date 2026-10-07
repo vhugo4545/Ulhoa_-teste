@@ -38,9 +38,9 @@ function verificarBloqueioKommo() {
 
   function aplicarBloqueio(bloquearPdfs) {
     const idsLivres = new Set(["btn-pedido-finalizado"]);
+    const idsPdf = ["btn-visualizar-proposta", "btn-folhas-impressao"];
     if (!bloquearPdfs) {
-      idsLivres.add("btn-visualizar-proposta");
-      idsLivres.add("btn-folhas-impressao");
+      idsPdf.forEach(id => idsLivres.add(id));
     }
     document.querySelectorAll("input, select, textarea, button").forEach(el => {
       if (idsLivres.has(el.id)) return;
@@ -60,6 +60,19 @@ function verificarBloqueioKommo() {
       el.dataset.onclickOriginal = el.getAttribute("onclick") || "";
       el.removeAttribute("onclick");
     });
+
+    // Quando PDFs estão livres, garante que btn-bloqueado não bloqueie esses botões
+    if (!bloquearPdfs) {
+      idsPdf.forEach(id => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        btn.classList.remove("btn-bloqueado");
+        btn.style.pointerEvents = "";
+        btn.style.opacity = "";
+        btn.style.cursor = "";
+        btn.disabled = false;
+      });
+    }
   }
 
   function checar() {
