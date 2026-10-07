@@ -166,10 +166,6 @@ function calcularValoresFinanceirosDiretoDaTabela(blocoId) {
       campoValorImpostos
     ) * comissaoArquiteta;
 
-  console.log("➡️ materialBase:", materialBase);
-  console.log("➡️ custoMaterial:", custoMaterial);
-  console.log("➡️ precoMinimo:", precoMinimo);
-  console.log("➡️ precoSugerido:", precoSugerido);
 
   return {
     campoValorGastosOperacionais,
