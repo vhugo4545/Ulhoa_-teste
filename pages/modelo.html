@@ -403,10 +403,17 @@
           });
         });
 
+        const payload = {
+          tipoProposta:     novaProposta.tipoProposta,
+          numeroProposta:   novaProposta.numeroProposta,
+          numeroPedido:     novaProposta.numeroPedido,
+          camposFormulario: novaProposta.camposFormulario,
+          grupos:           novaProposta.grupos,
+        };
         const resp = await fetch(`https://ulhoa-0a02024d350a.herokuapp.com/api/propostas/${idProposta}`, {
           method: "PUT",
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(novaProposta)
+          body: JSON.stringify(payload)
         });
 
         const result = await resp.json();
