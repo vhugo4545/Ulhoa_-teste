@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', carregarProdutos);
 async function carregarProdutos() {
   try {
     const response = await fetch('https://ulhoa-0a02024d350a.herokuapp.com/produtos/visualizar');
-    todosProdutos = (await response.json()).filter(p => !p.inativo);
+    todosProdutos = await response.json();
     produtosMapeados.clear();
     todosProdutos.forEach(produto => {
       if (produto.descricao) {
