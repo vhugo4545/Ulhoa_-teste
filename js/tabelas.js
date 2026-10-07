@@ -412,7 +412,7 @@ function mostrarSugestoes(input, idSuffix) {
                 <td>${prod.descricao || "-"}</td>
                 <td>R$ ${parseFloat(prod.valor_unitario||0).toFixed(2)}</td>
                 <td><button class="btn btn-success btn-sm"
-                            onclick="incluirProdutoPeloIndice('${idSuffix}', ${i})">+</button></td>
+                            onclick="incluirProdutoPeloIndice('${idSuffix}', ${i})"><span class="material-icons-outlined" style="font-size:18px;vertical-align:middle;">add</span></button></td>
               </tr>`).join("")}
           </tbody>
         </table>
