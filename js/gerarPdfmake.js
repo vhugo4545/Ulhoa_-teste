@@ -450,7 +450,7 @@ async function gerarPDFComPdfmake(gruposOcultarProduto, totais = {}) {
     content.push({
       table: {
         headerRows: 1,
-        widths: [16, 80, '*', 80, 70],
+        widths: [16, 80, '*', 70, 80],
         body: [
           [
             { text: '#',          style: 'thCell', alignment: 'center' },
@@ -885,8 +885,8 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
         { text: '#',          bold: true, fontSize: 9, fillColor: COR_HEADER, alignment: 'center' },
         { text: 'Utilização', bold: true, fontSize: 9, fillColor: COR_HEADER },
         { text: 'Descrição',  bold: true, fontSize: 9, fillColor: COR_HEADER },
-        { text: 'Unid.',      bold: true, fontSize: 9, fillColor: COR_HEADER, alignment: 'center' },
-        { text: 'Quantidade', bold: true, fontSize: 9, fillColor: COR_HEADER, alignment: 'center' }
+        { text: 'Quantidade', bold: true, fontSize: 9, fillColor: COR_HEADER, alignment: 'center' },
+        { text: 'Unid.',      bold: true, fontSize: 9, fillColor: COR_HEADER, alignment: 'center' }
       ]
     ];
 
@@ -896,8 +896,8 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
         { text: '',             fontSize: 9, alignment: 'center' },
         { text: parseBoldPdf(it.utilizacao, {}), fontSize: 9 },
         { text: it.descricao,   fontSize: 9 },
-        { text: it.unidade || '-', fontSize: 9, alignment: 'center' },
-        { text: it.qtd,         fontSize: 9, alignment: 'center' }
+        { text: it.qtd,         fontSize: 9, alignment: 'center' },
+        { text: it.unidade || '-', fontSize: 9, alignment: 'center' }
       ]);
     });
 
