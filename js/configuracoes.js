@@ -202,8 +202,7 @@ window.gerarOpcoesCondicaoParcelas = function (valorSelecionado = "") {
   return `<option value="" disabled${!valorSelecionado ? " selected" : ""}>Selecione…</option>` +
     opcoes.map(op =>
       `<option value="${op.value}"${op.value === valorSelecionado ? " selected" : ""}>${op.label}</option>`
-    ).join("") +
-    `<option value="personalizado"${valorSelecionado === "personalizado" ? " selected" : ""}>Personalizado</option>`;
+    ).join("");
 };
 
 // ── 4. API pública para o ajustes.html ───────────────────────────────────────
