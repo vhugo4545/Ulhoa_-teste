@@ -457,6 +457,30 @@
         </div>
       </div>
 
+      <!-- Card: Condições de Pagamento - Parcelas -->
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-title">
+          <span class="material-icons-outlined">receipt_long</span>
+          Condições de Pagamento — Parcelas
+        </div>
+        <div id="cfg-panel-parcelas">
+          <div class="cfg-lista" id="cfg-lista-parcelas"></div>
+          <div class="cfg-add-area">
+            <input class="cfg-add-input" id="cfg-parc-label" placeholder="Texto exibido (ex: 3 dias após instalação)" />
+            <input class="cfg-add-input" id="cfg-parc-value" placeholder="Chave interna (ex: 3-dias-inst)" />
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; margin-top:12px;">
+            <button class="cfg-add-btn" onclick="cfgAdicionarParcela_()">
+              <span class="material-icons-outlined">add</span> Adicionar opção
+            </button>
+            <button class="cfg-save-btn" onclick="cfgSalvarSecao('condicoesParcelas', 'cfg-status-parcelas')">
+              <span class="material-icons-outlined">cloud_upload</span> Salvar
+            </button>
+            <span class="cfg-status" id="cfg-status-parcelas"></span>
+          </div>
+        </div>
+      </div>
+
       <!-- Card: Condições Gerais -->
       <div class="card" style="grid-column: 1 / -1;">
         <div class="card-title">
@@ -1100,13 +1124,14 @@
 
   <script>
   // ── UI de gerenciamento de configurações ──────────────────────────────────
-  let _cfgEstado = { opcoesProduto: [], condicoesPagamento: [] };
+  let _cfgEstado = { opcoesProduto: [], condicoesPagamento: [], condicoesParcelas: [] };
 
   function cfgInit() {
-    const cfg = window.CFgAPI?.obter() || { opcoesProduto: [], condicoesPagamento: [] };
+    const cfg = window.CFgAPI?.obter() || { opcoesProduto: [], condicoesPagamento: [], condicoesParcelas: [] };
     _cfgEstado = JSON.parse(JSON.stringify(cfg));
     cfgRenderProduto();
     cfgRenderPagamento();
+    cfgRenderParcelas();
     cfgRenderCondicoes();
   }
 
@@ -1201,6 +1226,38 @@
 
   function cfgRemoverProduto(i)   { _cfgEstado.opcoesProduto.splice(i, 1);      cfgRenderProduto();   }
   function cfgRemoverPagamento(i) { _cfgEstado.condicoesPagamento.splice(i, 1); cfgRenderPagamento(); }
+  function cfgRemoverParcela(i)   { _cfgEstado.condicoesParcelas.splice(i, 1);  cfgRenderParcelas();  }
+
+  function cfgRenderParcelas() {
+    const lista = document.getElementById("cfg-lista-parcelas");
+    if (!lista) return;
+    lista.innerHTML = "";
+    (_cfgEstado.condicoesParcelas || []).forEach((op, i) => {
+      const item = document.createElement("div");
+      item.className = "cfg-item";
+      item.innerHTML = `
+        <div class="cfg-item-textos">
+          <input class="cfg-item-label" value="${_esc(op.label)}" placeholder="Texto exibido"
+            oninput="_cfgEstado.condicoesParcelas[${i}].label = this.value" />
+          <input class="cfg-item-value" value="${_esc(op.value)}" placeholder="Chave interna"
+            oninput="_cfgEstado.condicoesParcelas[${i}].value = this.value" />
+        </div>
+        <button class="cfg-del-btn" onclick="cfgRemoverParcela(${i})" title="Remover">
+          <span class="material-icons-outlined">delete_outline</span>
+        </button>`;
+      lista.appendChild(item);
+    });
+  }
+
+  function cfgAdicionarParcela_() {
+    const label = document.getElementById("cfg-parc-label").value.trim();
+    const value = document.getElementById("cfg-parc-value").value.trim();
+    if (!label || !value) { document.getElementById(!label ? "cfg-parc-label" : "cfg-parc-value").focus(); return; }
+    _cfgEstado.condicoesParcelas.push({ label, value });
+    document.getElementById("cfg-parc-label").value = "";
+    document.getElementById("cfg-parc-value").value = "";
+    cfgRenderParcelas();
+  }
 
   async function cfgSalvarSecao(chave, statusId) {
     const st = document.getElementById(statusId);
@@ -1220,9 +1277,10 @@
   async function cfgResetar() {
     if (!confirm("Restaurar todas as opções para o padrão original?")) return;
     await window.CFgAPI?.resetar();
-    _cfgEstado = JSON.parse(JSON.stringify(window.CFgAPI?.obter() || { opcoesProduto: [], condicoesPagamento: [], condicoesGerais: [] }));
+    _cfgEstado = JSON.parse(JSON.stringify(window.CFgAPI?.obter() || { opcoesProduto: [], condicoesPagamento: [], condicoesParcelas: [], condicoesGerais: [] }));
     cfgRenderProduto();
     cfgRenderPagamento();
+    cfgRenderParcelas();
     cfgRenderCondicoes();
   }
 

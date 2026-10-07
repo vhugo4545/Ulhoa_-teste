@@ -41,12 +41,13 @@ function adicionarParcela() {
     <label class="form-label mb-0">Condição de Pagto</label>
     <div class="condicao-wrapper">
       <select class="form-select condicao-pagto" onchange="verificarCondicaoPersonalizada(this)">
-        <option value="" disabled selected>Selecione…</option>
-        <option value="avista">3 dias após finalizar instalação completa.</option>
-        <option value="na-retirada">3 dias após finalizar instalação da estrutura.</option>
-        <option value="30-dias">3 dias após finalizar instalação dos vidros.</option>
-        <option value="entrada+30">Na retirada/entrega do produto.</option>
-        <option value="personalizado">Personalizado</option>
+        ${window.gerarOpcoesCondicaoParcelas ? window.gerarOpcoesCondicaoParcelas() : `
+          <option value="" disabled selected>Selecione…</option>
+          <option value="avista">3 dias após finalizar instalação completa.</option>
+          <option value="na-retirada">3 dias após finalizar instalação da estrutura.</option>
+          <option value="30-dias">3 dias após finalizar instalação dos vidros.</option>
+          <option value="entrada+30">Na retirada/entrega do produto.</option>
+          <option value="personalizado">Personalizado</option>`}
       </select>
     </div>
   </div>

@@ -1088,18 +1088,21 @@ async function vvBuscarCodigoClienteOmiePorNome(nome, { force = false } = {}) {
 
 window.vvBuscarCodigoClienteOmiePorNome = vvBuscarCodigoClienteOmiePorNome;
 
-const VV_CONDICOES_PAGTO_PARCELAS = [
-  { value: "avista", label: "3 dias apos finalizar instalacao completa." },
-  { value: "na-retirada", label: "3 dias apos finalizar instalacao da estrutura." },
-  { value: "30-dias", label: "3 dias apos finalizar instalacao dos vidros." },
-  { value: "entrada+30", label: "Na retirada/entrega do produto." },
-  { value: "personalizado", label: "Personalizado" },
-  // Retrocompatibilidade: valores do select #condicaoPagamento antigo
+const _VV_CONDICOES_PAGTO_PARCELAS_DEFAULT = [
+  { value: "avista",          label: "3 dias apos finalizar instalacao completa."      },
+  { value: "na-retirada",     label: "3 dias apos finalizar instalacao da estrutura."  },
+  { value: "30-dias",         label: "3 dias apos finalizar instalacao dos vidros."    },
+  { value: "entrada+30",      label: "Na retirada/entrega do produto."                 },
+  { value: "personalizado",   label: "Personalizado"                                   },
   { value: "debito_40_40_20", label: "40% de entrada, 40% após 30 dias e 20% após 60 dias." },
   { value: "debito_40_30_30", label: "40% de entrada, 30% após 30 dias e 30% após 60 dias." },
-  { value: "debito_60_40",    label: "60% de entrada, 40% após 30 dias." },
-  { value: "parcelado",       label: "Personalizado" }
+  { value: "debito_60_40",    label: "60% de entrada, 40% após 30 dias."               },
+  { value: "parcelado",       label: "Personalizado"                                   }
 ];
+function _getVVCondicoesPagto() {
+  const cfg = window.CFG?.condicoesParcelas;
+  return (cfg && cfg.length) ? cfg : _VV_CONDICOES_PAGTO_PARCELAS_DEFAULT;
+}
 
 /* Converte códigos antigos do sistema para os códigos Omie (tipo_documento_cadastro).
    Aceita tanto o valor antigo quanto o novo — idempotente. */
@@ -1146,7 +1149,7 @@ function vvRound2ControleParcelas(valor) {
 function vvCondicaoEhPersonalizadaParcelas(condicao = "") {
   const valor = String(condicao || "").trim();
   if (!valor) return false;
-  return !VV_CONDICOES_PAGTO_PARCELAS.some(op => op.value === valor);
+  return !_getVVCondicoesPagto().some(op => op.value === valor);
 }
 
 function vvCriarSelectCondicaoParcelas(className = "condicao-pagto") {
@@ -1160,7 +1163,7 @@ function vvCriarSelectCondicaoParcelas(className = "condicao-pagto") {
   optPlaceholder.textContent = "Selecione...";
   select.appendChild(optPlaceholder);
 
-  VV_CONDICOES_PAGTO_PARCELAS.forEach(op => {
+  _getVVCondicoesPagto().forEach(op => {
     const option = document.createElement("option");
     option.value = op.value;
     option.textContent = op.label;

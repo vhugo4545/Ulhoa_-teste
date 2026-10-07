@@ -125,6 +125,13 @@ const _DEFAULTS = {
     { label: "60% de entrada, 40% após 30 dias.",                    value: "debito_60_40"    },
     { label: "Personalizado",                                         value: "parcelado"       },
   ],
+  condicoesParcelas: [
+    { label: "3 dias após finalizar instalação completa.",         value: "avista"     },
+    { label: "3 dias após finalizar instalação da estrutura.",     value: "na-retirada"},
+    { label: "3 dias após finalizar instalação dos vidros.",       value: "30-dias"    },
+    { label: "Na retirada/entrega do produto.",                    value: "entrada+30" },
+    { label: "Personalizado",                                      value: "personalizado" },
+  ],
   condicoesGerais: [
     { key: "comInstalacao",  label: "Com medição e instalação",  texto: _TEXTO_COM_INSTALACAO  },
     { key: "semInstalacao",  label: "Sem medição e instalação",  texto: _TEXTO_SEM_INSTALACAO  },
@@ -188,6 +195,16 @@ function _hidratarSelectPagamento() {
       .join("");
 }
 document.addEventListener("DOMContentLoaded", _hidratarSelectPagamento);
+
+// ── 3b. Helper: gera <option> para selects .condicao-pagto ────────────────────
+window.gerarOpcoesCondicaoParcelas = function (valorSelecionado = "") {
+  const opcoes = window.CFG?.condicoesParcelas || [];
+  return `<option value="" disabled${!valorSelecionado ? " selected" : ""}>Selecione…</option>` +
+    opcoes.map(op =>
+      `<option value="${op.value}"${op.value === valorSelecionado ? " selected" : ""}>${op.label}</option>`
+    ).join("") +
+    `<option value="personalizado"${valorSelecionado === "personalizado" ? " selected" : ""}>Personalizado</option>`;
+};
 
 // ── 4. API pública para o ajustes.html ───────────────────────────────────────
 window.CFgAPI = {
