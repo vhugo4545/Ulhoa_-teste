@@ -147,6 +147,21 @@ body {
   pointer-events: none;
 }
 
+/* PDF livre (etapa Kommo com PDFs liberados) */
+.sidebar-button.btn-pdf-livre {
+  position: relative;
+}
+
+.sidebar-button.btn-pdf-livre::after {
+  content: "🔓";
+  position: absolute;
+  top: 5px;
+  right: 8px;
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: none;
+}
+
 /* ─── Content ────────────────────────────────────────────────────────── */
 .content {
   flex: 1;

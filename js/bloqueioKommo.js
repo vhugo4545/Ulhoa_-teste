@@ -61,18 +61,22 @@ function verificarBloqueioKommo() {
       el.removeAttribute("onclick");
     });
 
-    // Quando PDFs estão livres, garante que btn-bloqueado não bloqueie esses botões
-    if (!bloquearPdfs) {
-      idsPdf.forEach(id => {
-        const btn = document.getElementById(id);
-        if (!btn) return;
+    // Aplica badge nos botões de PDF conforme estado
+    idsPdf.forEach(id => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      if (bloquearPdfs) {
+        btn.classList.add("btn-bloqueado");
+        btn.classList.remove("btn-pdf-livre");
+      } else {
         btn.classList.remove("btn-bloqueado");
+        btn.classList.add("btn-pdf-livre");
         btn.style.pointerEvents = "";
         btn.style.opacity = "";
         btn.style.cursor = "";
         btn.disabled = false;
-      });
-    }
+      }
+    });
   }
 
   function checar() {
