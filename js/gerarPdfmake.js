@@ -885,7 +885,7 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
         { text: '#',          bold: true, fontSize: 9, fillColor: COR_HEADER, alignment: 'center' },
         { text: 'Utilização', bold: true, fontSize: 9, fillColor: COR_HEADER },
         { text: 'Descrição',  bold: true, fontSize: 9, fillColor: COR_HEADER },
-        { text: 'Quantidade', bold: true, fontSize: 9, fillColor: COR_HEADER, alignment: 'center' },
+        { text: 'Qtd.', bold: true, fontSize: 9, fillColor: COR_HEADER, alignment: 'center' },
         { text: 'Unid.',      bold: true, fontSize: 9, fillColor: COR_HEADER, alignment: 'center' }
       ]
     ];
