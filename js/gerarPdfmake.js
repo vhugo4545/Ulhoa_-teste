@@ -81,10 +81,10 @@ function _mostrarPreviewPDF(docDef, nomeArquivo) {
   overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
 }
 
-async function gerarPDFComPdfmake(gruposOcultarProduto, totais = {}) {
+async function gerarPDFComPdfmake(gruposOcultarProduto, totais = {}, { skipValorMinimo = false } = {}) {
   mostrarCarregando && mostrarCarregando();
 
-  if (typeof validarValorMinimoPermitido === "function") {
+  if (!skipValorMinimo && typeof validarValorMinimoPermitido === "function") {
     const valido = await validarValorMinimoPermitido();
     if (!valido) { ocultarCarregando && ocultarCarregando(); return; }
   }

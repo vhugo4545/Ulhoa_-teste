@@ -2613,10 +2613,15 @@ async function marcarAprovadoPeloGestor() {
 
 // 4️⃣ Enviado Para o Cliente
 async function marcarEnviadoParaCliente() {
+  if (typeof validarValorMinimoPermitido === "function") {
+    if (!await validarValorMinimoPermitido()) return;
+  }
   mostrarCarregando();
-  if (!await validarValorMinimoPermitido()) { ocultarCarregando(); return; }
   await atualizarStatus("Enviado Para o Cliente");
   ocultarCarregando();
+  if (typeof gerarPDFComPdfmake === "function") {
+    gerarPDFComPdfmake(false, {}, { skipValorMinimo: true });
+  }
 }
 
 async function validarValorMinimoPermitido() {

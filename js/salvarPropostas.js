@@ -965,11 +965,17 @@ async function marcarAprovadoPeloGestor() {
 
 // 4️⃣ Enviado Para o Cliente
 async function marcarEnviadoParaCliente() {
+  // Valida ANTES do spinner para que o popup não fique atrás do overlay
+  if (typeof validarValorMinimoPermitido === "function") {
+    if (!await validarValorMinimoPermitido()) return;
+  }
   mostrarCarregando();
-  if (!await validarValorMinimoPermitido()) { ocultarCarregando(); return; }
   await atualizarStatus("Enviado Para o Cliente");
-  gerarOrcamentoParaImpressaoCompleta();
   ocultarCarregando();
+  // Gera PDF sem validar valor mínimo novamente (já foi validado acima)
+  if (typeof gerarPDFComPdfmake === "function") {
+    gerarPDFComPdfmake(false, {}, { skipValorMinimo: true });
+  }
 }
 
 
