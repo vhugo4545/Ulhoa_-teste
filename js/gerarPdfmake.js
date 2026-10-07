@@ -186,13 +186,15 @@ async function gerarPDFComPdfmake(gruposOcultarProduto, totais = {}) {
     const colunas      = linhaProd?.querySelectorAll('td');
     const descricao    = sanitize(colunas?.[1]?.textContent.trim() || '-');
     const qtd          = linhaProd?.querySelector('input.quantidade')?.value || '1';
+    const unidadeRaw   = linhaProd?.querySelector('.unidade-medida')?.textContent?.trim() || '';
+    const unidade      = (unidadeRaw && unidadeRaw !== '—') ? unidadeRaw : '-';
     const resumo       = sanitize(document.getElementById(`resumo-${grupoId}`)?.value?.trim() || '');
     const infosProd    = sanitize(document.querySelector(`#${grupoId}-aba3 textarea[name="informacoesProduto"]`)?.value?.trim() || '');
     const prazoGrupo   = sanitize(document.querySelector(`#${grupoId}-aba3 input[name="previsaoEntrega"]`)?.value?.trim() || '');
     const totalTexto   = tabela.querySelector("tfoot td[colspan='7'] strong")?.textContent || 'R$ 0,00';
     const totalGrupo   = parseBRL(totalTexto);
     const ocultar      = !!(gruposOcultarProduto && gruposOcultarProduto[grupoId]);
-    gruposDados.push({ grupoId, nomeAmbiente, totalGrupo, descricao, qtd, resumo, infosProd, prazoGrupo, ocultar });
+    gruposDados.push({ grupoId, nomeAmbiente, totalGrupo, descricao, qtd, unidade, resumo, infosProd, prazoGrupo, ocultar });
   });
 
   const ambientesMap = {};
@@ -397,17 +399,19 @@ async function gerarPDFComPdfmake(gruposOcultarProduto, totais = {}) {
         [
           { text: '#',          style: 'thCell', alignment: 'center' },
           { text: 'Descrição',  style: 'thCell' },
-          { text: 'Quantidade', style: 'thCell', alignment: 'center' },
+          { text: 'Qtd',        style: 'thCell', alignment: 'center' },
+          { text: 'Unidade',    style: 'thCell', alignment: 'center' },
         ],
         [
           { text: String(num),   fontSize: 9, alignment: 'center' },
           { text: g.descricao,   fontSize: 9 },
           { text: String(g.qtd), fontSize: 9, alignment: 'center' },
+          { text: g.unidade,     fontSize: 9, alignment: 'center' },
         ]
       ];
 
       if (g.resumo) {
-        bodyRows.push([{}, { text: parseBoldPdf(g.resumo, {}), fontSize: 8, italics: true, color: '#444', colSpan: 2 }, {}]);
+        bodyRows.push([{}, { text: parseBoldPdf(g.resumo, {}), fontSize: 8, italics: true, color: '#444', colSpan: 3 }, {}, {}]);
       }
 
       if (g.prazoGrupo || g.infosProd) {
@@ -415,11 +419,11 @@ async function gerarPDFComPdfmake(gruposOcultarProduto, totais = {}) {
           g.prazoGrupo ? `Prazo Previsto: ${g.prazoGrupo}` : '',
           g.infosProd  ? g.infosProd : ''
         ].filter(Boolean).join('  |  ');
-        bodyRows.push([{}, { text: parseBoldPdf(prazoTxt, {}), fontSize: 8, bold: true, alignment: 'center', colSpan: 2 }, {}]);
+        bodyRows.push([{}, { text: parseBoldPdf(prazoTxt, {}), fontSize: 8, bold: true, alignment: 'center', colSpan: 3 }, {}, {}]);
       }
 
       content.push({
-        table: { headerRows: 1, widths: [20, '*', 80], body: bodyRows },
+        table: { headerRows: 1, widths: [20, '*', 60, 60], body: bodyRows },
         layout: 'lightHorizontalLines',
         margin: [0, 2, 0, 2]
       });
@@ -1072,11 +1076,13 @@ async function gerarRelatorioEntregaPdfmake() {
         ? Array.from(tabela.querySelectorAll('tbody tr')).find(tr => !tr.querySelector('td[colspan]') && tr.querySelectorAll('td').length >= 2)
         : null;
       const qtd  = linha?.querySelector('input.quantidade')?.value?.trim() || '-';
+      const unidadeRaw = linha?.querySelector('.unidade-medida')?.textContent?.trim() || '';
+      const unidade = (unidadeRaw && unidadeRaw !== '—') ? unidadeRaw : '-';
       const desc = document.getElementById(`resumo-${id}`)?.value?.trim() || '-';
       const previsao = document.querySelector(`#${id}-aba3 input[name="previsaoEntrega"]`)?.value?.trim() || '';
       const infoExtra = document.querySelector(`#${id}-aba3 textarea[name="informacoesProduto"]`)?.value?.trim() || '';
       const prazo = [previsao, infoExtra].filter(Boolean).join(' | ');
-      return { seq: idx + 1, titulo: sanitize(titulo), qtd, descricao: sanitize(desc), prazo: sanitize(prazo) };
+      return { seq: idx + 1, titulo: sanitize(titulo), qtd, unidade, descricao: sanitize(desc), prazo: sanitize(prazo) };
     });
 
   const logoBase64 = await carregarLogoBase64('../js/logo.jpg');
@@ -1180,12 +1186,13 @@ async function gerarRelatorioEntregaPdfmake() {
   });
 
   // ── Resumo dos Produtos ───────────────────────────────────────────────────
-  const listaProd = produtos.length ? produtos : [{ seq: 1, titulo: '-', qtd: '-', descricao: '-', prazo: '' }];
+  const listaProd = produtos.length ? produtos : [{ seq: 1, titulo: '-', qtd: '-', unidade: '-', descricao: '-', prazo: '' }];
   const prodBody = [
     [
       { text: 'Itens',      bold: true, fontSize: 9, fillColor: '#fafafa', alignment: 'center' },
       { text: 'Produto',    bold: true, fontSize: 9, fillColor: '#fafafa' },
-      { text: 'Quantidade', bold: true, fontSize: 9, fillColor: '#fafafa', alignment: 'center' },
+      { text: 'Qtd',        bold: true, fontSize: 9, fillColor: '#fafafa', alignment: 'center' },
+      { text: 'Unidade',    bold: true, fontSize: 9, fillColor: '#fafafa', alignment: 'center' },
       { text: 'Descrição',  bold: true, fontSize: 9, fillColor: '#fafafa' }
     ],
     ...listaProd.flatMap(p => {
@@ -1193,13 +1200,14 @@ async function gerarRelatorioEntregaPdfmake() {
         { text: String(p.seq), fontSize: 9, alignment: 'center', bold: true },
         { text: p.titulo, fontSize: 9 },
         { text: p.qtd, fontSize: 9, alignment: 'center' },
+        { text: p.unidade || '-', fontSize: 9, alignment: 'center' },
         { text: parseBoldPdf(p.descricao, {}), fontSize: 8 }
       ];
       if (!p.prazo) return [linhaItem];
       const linhaPrazo = [
         { text: '', fontSize: 9 },
-        { text: [{ text: 'Prazo Previsto: ', bold: true, fontSize: 11 }, ...parseBoldPdf(p.prazo, { bold: true, fontSize: 11 })], colSpan: 3 },
-        {}, {}
+        { text: [{ text: 'Prazo Previsto: ', bold: true, fontSize: 11 }, ...parseBoldPdf(p.prazo, { bold: true, fontSize: 11 })], colSpan: 4 },
+        {}, {}, {}
       ];
       return [linhaItem, linhaPrazo];
     })
@@ -1209,7 +1217,7 @@ async function gerarRelatorioEntregaPdfmake() {
   content.push({
     table: {
       headerRows: 1,
-      widths: [50, 160, 82, '*'],
+      widths: [50, 130, 55, 55, '*'],
       body: prodBody,
       heights: [null, ...Array(listaProd.length).fill(PROD_ROW_H)]
     },
@@ -1329,8 +1337,10 @@ async function gerarEtapasDProcessoPdfmake() {
         ? Array.from(tabela.querySelectorAll('tbody tr')).find(tr => !tr.querySelector('td[colspan]') && tr.querySelectorAll('td').length >= 2)
         : null;
       const qtd    = linha?.querySelector('input.quantidade')?.value?.trim() || '-';
+      const unidadeRaw = linha?.querySelector('.unidade-medida')?.textContent?.trim() || '';
+      const unidade = (unidadeRaw && unidadeRaw !== '—') ? unidadeRaw : '-';
       const desc   = document.getElementById(`resumo-${id}`)?.value?.trim() || '-';
-      return { titulo: sanitize(titulo), qtd, descricao: sanitize(desc) };
+      return { titulo: sanitize(titulo), qtd, unidade, descricao: sanitize(desc) };
     });
 
   const logoBase64 = await carregarLogoBase64('../js/logo.jpg');
@@ -1432,18 +1442,20 @@ async function gerarEtapasDProcessoPdfmake() {
   });
 
   // ── Produtos / Descritivos ─────────────────────────────────────────────────
-  const listaProd = produtos.length ? produtos : [{ titulo: '-', qtd: '-', descricao: '-' }];
+  const listaProd = produtos.length ? produtos : [{ titulo: '-', qtd: '-', unidade: '-', descricao: '-' }];
   const prodBody = [
     [
       { text: 'Item',       bold: true, fontSize: 9, fillColor: '#fafafa', alignment: 'center' },
       { text: 'Produto',    bold: true, fontSize: 9, fillColor: '#fafafa' },
-      { text: 'Quantidade', bold: true, fontSize: 9, fillColor: '#fafafa', alignment: 'center' },
+      { text: 'Qtd',        bold: true, fontSize: 9, fillColor: '#fafafa', alignment: 'center' },
+      { text: 'Unidade',    bold: true, fontSize: 9, fillColor: '#fafafa', alignment: 'center' },
       { text: 'Descrição',  bold: true, fontSize: 9, fillColor: '#fafafa' }
     ],
     ...listaProd.map((p, i) => [
       { text: String(i + 1), fontSize: 9, alignment: 'center', bold: true },
       { text: p.titulo, fontSize: 9 },
       { text: p.qtd, fontSize: 9, alignment: 'center' },
+      { text: p.unidade || '-', fontSize: 9, alignment: 'center' },
       { text: parseBoldPdf(p.descricao, {}), fontSize: 8 }
     ])
   ];
@@ -1452,7 +1464,7 @@ async function gerarEtapasDProcessoPdfmake() {
   content.push({
     table: {
       headerRows: 1,
-      widths: [50, 160, 65, '*'],
+      widths: [50, 130, 55, 55, '*'],
       body: prodBody,
       heights: [null, ...Array(listaProd.length).fill(PROD_ROW_H)]
     },
