@@ -403,10 +403,27 @@
           });
         });
 
-        const gruposPayload = novaProposta.grupos.map(g => {
-          const { dadosPopupSalvos, ...resto } = g;
-          return resto;
-        });
+        const gruposPayload = novaProposta.grupos.map(g => ({
+          nome:             g.nome,
+          ambiente:         g.ambiente,
+          parametros:       g.parametros,
+          camposPopupExtras: g.camposPopupExtras,
+          itens: (g.itens || []).map(item => ({
+            descricao_utilizacao:  item.descricao_utilizacao,
+            nome_produto:          item.nome_produto,
+            custo:                 item.custo,
+            preco:                 item.preco,
+            codigo_omie:           item.codigo_omie,
+            unidade:               item.unidade,
+            quantidade:            item.quantidade,
+            quantidade_desejada:   item.quantidade_desejada,
+            formula_quantidade:    item.formula_quantidade,
+            formula_custo:         item.formula_custo,
+            formula_preco:         item.formula_preco,
+            valor_total_produto:   item.valor_total_produto,
+          })),
+        }));
+
         const payload = {
           tipoProposta:     novaProposta.tipoProposta,
           numeroProposta:   novaProposta.numeroProposta,
