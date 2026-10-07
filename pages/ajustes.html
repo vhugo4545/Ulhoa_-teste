@@ -821,6 +821,14 @@
   const TRAV_KOMMO_LS_KEY = "cfg_travamento_kommo";
   const KOMMO_SERVER_URL  = "https://kommo-server-9f1243cbe450.herokuapp.com";
 
+  const BOTOES_IMPRESSAO = [
+    { id: "btn-visualizar-proposta",  label: "Visualizar Proposta"  },
+    { id: "btn-folhas-impressao",     label: "Folhas de Impressão"  },
+    { id: "btn-folha-ordem-servico",  label: "Ordem de Serviço"     },
+    { id: "btn-etapas-processo",      label: "Etapas do Processo"   },
+    { id: "btn-historico-producao",   label: "Rel. Entrega"         },
+  ];
+
   function kommoTravCarregarConfig() {
     const cfgServer = window.CFgAPI?.obter()?.travamentoKommo;
     if (cfgServer && Object.keys(cfgServer).length) return cfgServer;
@@ -868,11 +876,16 @@
       return;
     }
 
-    const cfg     = kommoTravCarregarConfig();
-    const cfgOmie = (() => {
+    const cfg      = kommoTravCarregarConfig();
+    const cfgOmie  = (() => {
       const s = window.CFgAPI?.obter()?.omieEtapas;
       if (s && Object.keys(s).length) return s;
       try { return JSON.parse(localStorage.getItem("cfg_omie_etapas")) || {}; } catch { return {}; }
+    })();
+    const cfgBotoes = (() => {
+      const s = window.CFgAPI?.obter()?.botoesKommo;
+      if (s && Object.keys(s).length) return s;
+      try { return JSON.parse(localStorage.getItem("cfg_botoes_kommo")) || {}; } catch { return {}; }
     })();
 
     pipelines.forEach(pipeline => {
@@ -946,7 +959,39 @@
         row.appendChild(labelWrap);
         row.appendChild(sel);
         row.appendChild(cbOmieLabel);
-        group.appendChild(row);
+
+        // Sub-linha com checkboxes por botão PDF
+        const btnRow = document.createElement("div");
+        btnRow.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;padding:4px 6px 4px 28px;";
+        const BOTOES_IMPRESSAO = [
+          { id: "btn-visualizar-proposta",  label: "Proposta"      },
+          { id: "btn-folhas-impressao",     label: "Folhas"        },
+          { id: "btn-folha-ordem-servico",  label: "O. Serviço"    },
+          { id: "btn-etapas-processo",      label: "Etapas"        },
+          { id: "btn-historico-producao",   label: "Entrega"       },
+        ];
+        const cfgBotoesEtapa = (cfgBotoes[stageKey] && typeof cfgBotoes[stageKey] === "object") ? cfgBotoes[stageKey] : {};
+        BOTOES_IMPRESSAO.forEach(btn => {
+          const lbl = document.createElement("label");
+          lbl.title = btn.id;
+          lbl.style.cssText = "display:flex;align-items:center;gap:3px;cursor:pointer;font-size:10px;color:#ef4444;white-space:nowrap;border:1px solid #fee2e2;border-radius:4px;padding:2px 5px;";
+          const cbBtn = document.createElement("input");
+          cbBtn.type = "checkbox";
+          cbBtn.dataset.stageId = stageKey;
+          cbBtn.dataset.btnId   = btn.id;
+          cbBtn.dataset.btnFlag = "1";
+          cbBtn.style.cssText = "width:11px;height:11px;cursor:pointer;accent-color:#ef4444;";
+          cbBtn.checked = !!cfgBotoesEtapa[btn.id];
+          lbl.appendChild(cbBtn);
+          lbl.appendChild(Object.assign(document.createElement("span"), { textContent: "🔒 " + btn.label }));
+          btnRow.appendChild(lbl);
+        });
+
+        const wrapStage = document.createElement("div");
+        wrapStage.style.cssText = "display:flex;flex-direction:column;";
+        wrapStage.appendChild(row);
+        wrapStage.appendChild(btnRow);
+        group.appendChild(wrapStage);
       });
 
       container.appendChild(group);
@@ -975,11 +1020,15 @@
   }
 
   async function salvarTravamentoKommo() {
-    const cfg     = {};
-    const cfgOmie = {};
+    const cfg       = {};
+    const cfgOmie   = {};
+    const cfgBotoes = {};
 
     document.querySelectorAll("#kommo-trav-container input[type=checkbox]").forEach(cb => {
-      if (cb.dataset.omieFlag) {
+      if (cb.dataset.btnFlag) {
+        if (!cfgBotoes[cb.dataset.stageId]) cfgBotoes[cb.dataset.stageId] = {};
+        cfgBotoes[cb.dataset.stageId][cb.dataset.btnId] = cb.checked;
+      } else if (cb.dataset.omieFlag) {
         cfgOmie[cb.dataset.stageId] = cb.checked;
       } else {
         if (cb.checked) {
@@ -998,6 +1047,7 @@
 
     localStorage.setItem(TRAV_KOMMO_LS_KEY, JSON.stringify(cfg));
     localStorage.setItem("cfg_omie_etapas", JSON.stringify(cfgOmie));
+    localStorage.setItem("cfg_botoes_kommo", JSON.stringify(cfgBotoes));
 
     const statusEl = document.getElementById("cfg-status-travamento-kommo");
     if (statusEl) statusEl.textContent = "Salvando…";
@@ -1005,6 +1055,7 @@
     const cfgParcial = Object.assign({}, window.CFgAPI?.obter() || {}, {
       travamentoKommo: cfg,
       omieEtapas:      cfgOmie,
+      botoesKommo:     cfgBotoes,
     });
     const ok = await window.CFgAPI?.salvar(cfgParcial);
 

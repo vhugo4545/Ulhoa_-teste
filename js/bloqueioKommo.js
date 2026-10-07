@@ -91,6 +91,11 @@ function verificarBloqueioKommo() {
       ? cfgOmieServer
       : (() => { try { return JSON.parse(localStorage.getItem("cfg_omie_etapas")) || {}; } catch { return {}; } })();
 
+    const cfgBotoesServer = window.CFgAPI?.obter()?.botoesKommo;
+    const cfgBotoes = (cfgBotoesServer && Object.keys(cfgBotoesServer).length)
+      ? cfgBotoesServer
+      : (() => { try { return JSON.parse(localStorage.getItem("cfg_botoes_kommo")) || {}; } catch { return {}; } })();
+
     const token = localStorage.getItem("accessToken") || "";
 
     Promise.all([
@@ -133,6 +138,39 @@ function verificarBloqueioKommo() {
           btnOmie.style.display = "none";
         }
       }
+
+      // Bloqueio por botão PDF individual
+      const botoesEtapa = (cfgBotoes[statusId] && typeof cfgBotoes[statusId] === "object") ? cfgBotoes[statusId] : {};
+      const TODOS_BOTOES_PDF = [
+        "btn-visualizar-proposta",
+        "btn-folhas-impressao",
+        "btn-folha-ordem-servico",
+        "btn-etapas-processo",
+        "btn-historico-producao",
+      ];
+      TODOS_BOTOES_PDF.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (botoesEtapa[id]) {
+          el.classList.add("btn-bloqueado");
+          el.classList.remove("btn-pdf-livre");
+          if (!isSuperUser) {
+            el.disabled = true;
+            el.style.pointerEvents = "none";
+            el.style.opacity = "0.85";
+            el.style.cursor = "not-allowed";
+          }
+        } else {
+          el.classList.remove("btn-bloqueado");
+          if (!el.classList.contains("btn-pdf-livre")) {
+            el.classList.add("btn-pdf-livre");
+          }
+          el.style.pointerEvents = "";
+          el.style.opacity = "";
+          el.style.cursor = "";
+          el.disabled = false;
+        }
+      });
     })
     .catch(e => console.warn("[kommo-lock] Erro ao verificar etapa:", e.message));
   }
