@@ -6,10 +6,7 @@ function verificarBloqueioKommo() {
   const idProposta  = new URLSearchParams(window.location.search).get("id");
   console.log(`[kommo-lock] usuarioTipo: ${tipoUsuario} | idProposta: ${idProposta}`);
 
-  if (tipoUsuario === "admin") {
-    console.log("[kommo-lock] Admin detectado — bloqueio não aplicado.");
-    return;
-  }
+  const isSuperUser = tipoUsuario === "admin" || tipoUsuario === "gestor";
   if (!idProposta) {
     console.warn("[kommo-lock] ID da proposta não encontrado na URL.");
     return;
@@ -37,30 +34,33 @@ function verificarBloqueioKommo() {
     main.insertBefore(aviso, main.firstChild);
   }
 
-  function aplicarBloqueio(bloquearPdfs) {
+  function aplicarBloqueio(bloquearPdfs, apenasVisual = false) {
     const idsLivres = new Set(["btn-pedido-finalizado"]);
     const idsPdf = ["btn-visualizar-proposta", "btn-folhas-impressao"];
     if (!bloquearPdfs) {
       idsPdf.forEach(id => idsLivres.add(id));
     }
-    document.querySelectorAll("input, select, textarea, button").forEach(el => {
-      if (idsLivres.has(el.id)) return;
-      el.disabled = true;
-      el.setAttribute("readonly", "readonly");
-      el.style.pointerEvents = "none";
-      el.style.opacity = "0.85";
-      el.style.cursor = "not-allowed";
-    });
-    document.querySelectorAll('[contenteditable="true"]').forEach(el => {
-      el.setAttribute("contenteditable", "false");
-      el.style.pointerEvents = "none";
-      el.style.opacity = "0.85";
-    });
-    document.querySelectorAll("[onclick]").forEach(el => {
-      if (idsLivres.has(el.id)) return;
-      el.dataset.onclickOriginal = el.getAttribute("onclick") || "";
-      el.removeAttribute("onclick");
-    });
+
+    if (!apenasVisual) {
+      document.querySelectorAll("input, select, textarea, button").forEach(el => {
+        if (idsLivres.has(el.id)) return;
+        el.disabled = true;
+        el.setAttribute("readonly", "readonly");
+        el.style.pointerEvents = "none";
+        el.style.opacity = "0.85";
+        el.style.cursor = "not-allowed";
+      });
+      document.querySelectorAll('[contenteditable="true"]').forEach(el => {
+        el.setAttribute("contenteditable", "false");
+        el.style.pointerEvents = "none";
+        el.style.opacity = "0.85";
+      });
+      document.querySelectorAll("[onclick]").forEach(el => {
+        if (idsLivres.has(el.id)) return;
+        el.dataset.onclickOriginal = el.getAttribute("onclick") || "";
+        el.removeAttribute("onclick");
+      });
+    }
 
     // Aplica badge nos botões de PDF conforme estado
     idsPdf.forEach(id => {
@@ -112,7 +112,7 @@ function verificarBloqueioKommo() {
       console.log("[kommo-lock] Config travamentoKommo:", cfgKommo);
 
       mostrarBanner(bloqueado, nomeEtapa, bloquearPdfs);
-      if (bloqueado) aplicarBloqueio(bloquearPdfs);
+      if (bloqueado) aplicarBloqueio(bloquearPdfs, isSuperUser);
     })
     .catch(e => console.warn("[kommo-lock] Erro ao verificar etapa:", e.message));
   }
