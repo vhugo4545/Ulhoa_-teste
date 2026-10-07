@@ -82,12 +82,12 @@ function _mostrarPreviewPDF(docDef, nomeArquivo) {
 }
 
 async function gerarPDFComPdfmake(gruposOcultarProduto, totais = {}, { skipValorMinimo = false } = {}) {
-  mostrarCarregando && mostrarCarregando();
-
   if (!skipValorMinimo && typeof validarValorMinimoPermitido === "function") {
     const valido = await validarValorMinimoPermitido();
-    if (!valido) { ocultarCarregando && ocultarCarregando(); return; }
+    if (!valido) return;
   }
+
+  mostrarCarregando && mostrarCarregando();
 
   try { await carregarPdfmake(); }
   catch (e) {
