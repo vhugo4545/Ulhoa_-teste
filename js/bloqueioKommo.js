@@ -86,6 +86,11 @@ function verificarBloqueioKommo() {
       ? cfgServer
       : (() => { try { return JSON.parse(localStorage.getItem("cfg_travamento_kommo")) || {}; } catch { return {}; } })();
 
+    const cfgOmieServer = window.CFgAPI?.obter()?.omieEtapas;
+    const cfgOmie = (cfgOmieServer && Object.keys(cfgOmieServer).length)
+      ? cfgOmieServer
+      : (() => { try { return JSON.parse(localStorage.getItem("cfg_omie_etapas")) || {}; } catch { return {}; } })();
+
     const token = localStorage.getItem("accessToken") || "";
 
     Promise.all([
@@ -113,6 +118,21 @@ function verificarBloqueioKommo() {
 
       mostrarBanner(bloqueado, nomeEtapa, bloquearPdfs);
       if (bloqueado) aplicarBloqueio(bloquearPdfs, isSuperUser);
+
+      // Controla botão "Enviar para Omie" conforme permissão da etapa
+      const omiePermitido = !!cfgOmie[statusId];
+      const btnOmie = document.getElementById("btn-gerar-pedido");
+      if (btnOmie) {
+        if (omiePermitido) {
+          btnOmie.style.display = "";
+          btnOmie.disabled = false;
+          btnOmie.style.pointerEvents = "";
+          btnOmie.style.opacity = "";
+          btnOmie.classList.remove("btn-bloqueado");
+        } else {
+          btnOmie.style.display = "none";
+        }
+      }
     })
     .catch(e => console.warn("[kommo-lock] Erro ao verificar etapa:", e.message));
   }

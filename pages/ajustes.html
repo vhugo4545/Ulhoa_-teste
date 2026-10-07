@@ -868,7 +868,12 @@
       return;
     }
 
-    const cfg = kommoTravCarregarConfig();
+    const cfg     = kommoTravCarregarConfig();
+    const cfgOmie = (() => {
+      const s = window.CFgAPI?.obter()?.omieEtapas;
+      if (s && Object.keys(s).length) return s;
+      try { return JSON.parse(localStorage.getItem("cfg_omie_etapas")) || {}; } catch { return {}; }
+    })();
 
     pipelines.forEach(pipeline => {
       if (!pipeline.etapas || !pipeline.etapas.length) return;
@@ -883,8 +888,8 @@
 
       pipeline.etapas.forEach(etapa => {
         const stageKey = String(etapa.status_id);
-        const row = document.createElement("label");
-        row.style.cssText = "display:flex;align-items:center;gap:10px;padding:6px 4px;cursor:pointer;border-radius:5px;transition:background .1s;";
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;align-items:center;gap:10px;padding:6px 4px;border-radius:5px;transition:background .1s;";
         row.onmouseover = () => row.style.background = "rgba(99,102,241,.06)";
         row.onmouseout  = () => row.style.background = "";
 
@@ -924,10 +929,23 @@
         `;
         cb.addEventListener("change", () => { sel.style.display = cb.checked ? "inline-block" : "none"; });
 
+        // Checkbox Omie
+        const cbOmieLabel = document.createElement("label");
+        cbOmieLabel.style.cssText = "display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px;color:#0369a1;white-space:nowrap;margin-left:4px;";
+        const cbOmie = document.createElement("input");
+        cbOmie.type = "checkbox";
+        cbOmie.dataset.stageId  = stageKey;
+        cbOmie.dataset.omieFlag = "1";
+        cbOmie.style.cssText = "width:13px;height:13px;cursor:pointer;accent-color:#0369a1;";
+        cbOmie.checked = !!cfgOmie[stageKey];
+        cbOmieLabel.appendChild(cbOmie);
+        cbOmieLabel.appendChild(Object.assign(document.createElement("span"), { textContent: "Omie" }));
+
         row.appendChild(cb);
         row.appendChild(dot);
         row.appendChild(labelWrap);
         row.appendChild(sel);
+        row.appendChild(cbOmieLabel);
         group.appendChild(row);
       });
 
@@ -957,13 +975,19 @@
   }
 
   async function salvarTravamentoKommo() {
-    const cfg = {};
+    const cfg     = {};
+    const cfgOmie = {};
+
     document.querySelectorAll("#kommo-trav-container input[type=checkbox]").forEach(cb => {
-      if (cb.checked) {
-        const sel = document.querySelector(`select[data-stage-id="${cb.dataset.stageId}"][data-tipo-bloqueio]`);
-        cfg[cb.dataset.stageId] = sel ? sel.value : "ajustes";
+      if (cb.dataset.omieFlag) {
+        cfgOmie[cb.dataset.stageId] = cb.checked;
       } else {
-        cfg[cb.dataset.stageId] = false;
+        if (cb.checked) {
+          const sel = document.querySelector(`select[data-stage-id="${cb.dataset.stageId}"][data-tipo-bloqueio]`);
+          cfg[cb.dataset.stageId] = sel ? sel.value : "ajustes";
+        } else {
+          cfg[cb.dataset.stageId] = false;
+        }
       }
     });
 
@@ -972,19 +996,16 @@
       return;
     }
 
-    const bloqueadas = Object.entries(cfg).filter(([,v]) => v).map(([k,v]) => `${k}(${v})`);
-    const livres     = Object.entries(cfg).filter(([,v]) => !v).map(([k]) => k);
-    console.log("[kommo-trav] Salvando config:");
-    console.log("[kommo-trav] Bloqueadas:", bloqueadas);
-    console.log("[kommo-trav] Livres:", livres);
-    console.log("[kommo-trav] Objeto completo:", cfg);
-
     localStorage.setItem(TRAV_KOMMO_LS_KEY, JSON.stringify(cfg));
+    localStorage.setItem("cfg_omie_etapas", JSON.stringify(cfgOmie));
 
     const statusEl = document.getElementById("cfg-status-travamento-kommo");
     if (statusEl) statusEl.textContent = "Salvando…";
 
-    const cfgParcial = Object.assign({}, window.CFgAPI?.obter() || {}, { travamentoKommo: cfg });
+    const cfgParcial = Object.assign({}, window.CFgAPI?.obter() || {}, {
+      travamentoKommo: cfg,
+      omieEtapas:      cfgOmie,
+    });
     const ok = await window.CFgAPI?.salvar(cfgParcial);
 
     if (statusEl) {
