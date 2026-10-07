@@ -1,4 +1,5 @@
 const KOMMO_SERVER = "https://kommo-server-9f1243cbe450.herokuapp.com";
+console.log("[bloqueioKommo] script carregado ✓");
 
 function verificarBloqueioKommo() {
   const tipoUsuario = localStorage.getItem("usuarioTipo") || "(não definido)";
