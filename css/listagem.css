@@ -138,13 +138,15 @@ body {
 }
 
 .sidebar-button.btn-bloqueado::after {
-  content: "🚫";
+  font-family: 'Material Icons Outlined';
+  content: "\e897"; /* lock */
   position: absolute;
   top: 5px;
-  right: 8px;
-  font-size: 10px;
+  right: 6px;
+  font-size: 12px;
   line-height: 1;
   pointer-events: none;
+  color: #ef4444;
 }
 
 /* PDF livre (etapa Kommo com PDFs liberados) */
@@ -153,13 +155,15 @@ body {
 }
 
 .sidebar-button.btn-pdf-livre::after {
-  content: "🔓";
+  font-family: 'Material Icons Outlined';
+  content: "\e898"; /* lock_open */
   position: absolute;
   top: 5px;
-  right: 8px;
-  font-size: 10px;
+  right: 6px;
+  font-size: 12px;
   line-height: 1;
   pointer-events: none;
+  color: #4ade80;
 }
 
 /* ─── Content ────────────────────────────────────────────────────────── */
