@@ -450,7 +450,7 @@ async function gerarPDFComPdfmake(gruposOcultarProduto, totais = {}) {
     content.push({
       table: {
         headerRows: 1,
-        widths: [16, 80, '*', 70, 80],
+        widths: [16, 80, '*', 85, 55],
         body: [
           [
             { text: '#',          style: 'thCell', alignment: 'center' },
