@@ -403,19 +403,28 @@
           });
         });
 
+        const gruposPayload = novaProposta.grupos.map(g => {
+          const { dadosPopupSalvos, ...resto } = g;
+          return resto;
+        });
         const payload = {
           tipoProposta:     novaProposta.tipoProposta,
           numeroProposta:   novaProposta.numeroProposta,
           numeroPedido:     novaProposta.numeroPedido,
           camposFormulario: novaProposta.camposFormulario,
-          grupos:           novaProposta.grupos,
+          grupos:           gruposPayload,
         };
+        console.log("[modelo] payload size:", JSON.stringify(payload).length, "bytes");
         const resp = await fetch(`https://ulhoa-0a02024d350a.herokuapp.com/api/propostas/${idProposta}`, {
           method: "PUT",
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
 
+        if (!resp.ok) {
+          const txt = await resp.text();
+          throw new Error(`HTTP ${resp.status}: ${txt.slice(0, 200)}`);
+        }
         const result = await resp.json();
         console.log("✅ Apenas fórmulas atualizadas:", result);
 
