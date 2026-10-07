@@ -225,7 +225,7 @@ async function gerarOrcamentoParaImpressaoCompleta() {
         desconto,
         totalComDesconto,
         logoBase64
-      });
+      }, { skipValorMinimo: true });
     }
   );
 }
