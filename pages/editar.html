@@ -2625,10 +2625,108 @@ async function marcarPendenteAprovacao() {
 
 // 3️⃣ Aprovado Pelo Gestor
 async function marcarAprovadoPeloGestor() {
-    mostrarCarregando()
-  await marcarPrecosDivergentesOmie()
+  const _isAdmin = (localStorage.getItem("usuarioTipo") || "") === "admin";
+
+  if (_isAdmin) {
+    const pendentes = (window._solicitacoesAprovacaoMinimo || []).filter(s => s.status === "pendente");
+    if (pendentes.length > 0) {
+      const continuar = await _mostrarModalAprovacaoMinimo(pendentes);
+      if (continuar === null) return; // gestor fechou sem decidir
+    }
+  }
+
+  mostrarCarregando();
+  await marcarPrecosDivergentesOmie();
   await atualizarStatus("Aprovado Pelo Gestor");
- ocultarCarregando() 
+  ocultarCarregando();
+}
+
+async function _mostrarModalAprovacaoMinimo(pendentes) {
+  const fmtBRL = n => (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const token  = localStorage.getItem("accessToken") || "";
+  const aprovador = localStorage.getItem("usuarioNome") || "Gestor";
+
+  return new Promise(resolve => {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;";
+
+    const itens = pendentes.map(s => {
+      const dt = new Date(s.dataHora || s.criado_em).toLocaleString("pt-BR");
+      return `
+        <div data-id="${s._id}" style="border:1px solid #e5e7eb;border-left:4px solid #f59e0b;border-radius:10px;padding:16px;margin-bottom:12px;">
+          <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:4px;">Solicitação de aprovação de valor</div>
+          <div style="font-size:12px;color:#6b7280;margin-bottom:8px;">
+            👤 <strong>${s.solicitante || "—"}</strong> &nbsp;·&nbsp; 🕐 ${dt}
+          </div>
+          <div style="display:flex;gap:16px;font-size:13px;margin-bottom:12px;">
+            <span>Valor final: <strong style="color:#dc2626;">${fmtBRL(s.valorFinal)}</strong></span>
+            <span>Mínimo: <strong>${fmtBRL(s.valorMinimo)}</strong></span>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button data-acao="aprovar" data-id="${s._id}" style="flex:1;padding:9px 0;border:none;border-radius:8px;background:#16a34a;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">✓ Aprovar</button>
+            <button data-acao="negar"   data-id="${s._id}" style="flex:1;padding:9px 0;border:none;border-radius:8px;background:#ef4444;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">✗ Negar</button>
+          </div>
+        </div>`;
+    }).join("");
+
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:28px 28px 24px;max-width:480px;width:95%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.25);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <span style="font-size:16px;font-weight:700;color:#111827;">Solicitações de valor mínimo</span>
+          <button id="_apmin_fechar" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:20px;line-height:1;">✕</button>
+        </div>
+        ${itens}
+        <div style="text-align:center;margin-top:4px;">
+          <button id="_apmin_pular" style="background:none;border:none;color:#6b7280;font-size:12px;cursor:pointer;text-decoration:underline;">Continuar sem decidir agora</button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    overlay.querySelector("#_apmin_fechar").onclick = () => { document.body.removeChild(overlay); resolve(null); };
+    overlay.querySelector("#_apmin_pular").onclick  = () => { document.body.removeChild(overlay); resolve(true); };
+
+    overlay.addEventListener("click", async e => {
+      const btn = e.target.closest("button[data-acao]");
+      if (!btn) return;
+      const aprovacaoId = btn.dataset.id;
+      const acao = btn.dataset.acao; // "aprovar" ou "negar"
+      btn.disabled = true;
+      btn.textContent = "...";
+
+      try {
+        const resp = await fetch(`https://ulhoa-0a02024d350a.herokuapp.com/api/aprovacoes-minimo/${aprovacaoId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ status: acao === "aprovar" ? "aprovado" : "negado", aprovador })
+        });
+        if (!resp.ok) throw new Error();
+        const doc = await resp.json();
+
+        // Atualiza estado local
+        window._solicitacoesAprovacaoMinimo = (window._solicitacoesAprovacaoMinimo || []).map(s =>
+          s._id === aprovacaoId ? doc : s
+        );
+
+        // Re-renderiza totais para refletir o status
+        if (typeof adicionarTotalizadoresPorAmbienteComAgrupamento === "function") {
+          adicionarTotalizadoresPorAmbienteComAgrupamento();
+        }
+
+        // Remove o card da solicitação resolvida
+        const card = overlay.querySelector(`[data-id="${aprovacaoId}"]`);
+        if (card) card.remove();
+
+        // Se não restam pendentes, fecha
+        const restantes = overlay.querySelectorAll("[data-id]");
+        if (restantes.length === 0) { document.body.removeChild(overlay); resolve(true); }
+      } catch {
+        btn.disabled = false;
+        btn.textContent = acao === "aprovar" ? "✓ Aprovar" : "✗ Negar";
+        alert("Erro ao salvar decisão. Tente novamente.");
+      }
+    });
+  });
 }
 
 // 4️⃣ Enviado Para o Cliente
