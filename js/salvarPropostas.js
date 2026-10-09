@@ -966,6 +966,7 @@ async function marcarAprovadoPeloGestor() {
 // 4️⃣ Enviado Para o Cliente
 async function marcarEnviadoParaCliente() {
   // Valida ANTES do spinner para que o popup não fique atrás do overlay
+  if (typeof validarOmieAtualizado === "function" && !await validarOmieAtualizado()) return;
   if (typeof validarValorMinimoPermitido === "function") {
     if (!await validarValorMinimoPermitido()) return;
   }

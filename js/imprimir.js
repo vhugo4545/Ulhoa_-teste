@@ -69,6 +69,7 @@ async function carregarLogoBase64(src) {
 }
 
 async function gerarOrcamentoParaImpressaoCompleta() {
+  if (typeof validarOmieAtualizado === "function" && !await validarOmieAtualizado()) return;
   if (!await validarItensZeradosParaImpressao()) return;
   if (typeof validarValorMinimoPermitido === "function" && !await validarValorMinimoPermitido()) return;
 

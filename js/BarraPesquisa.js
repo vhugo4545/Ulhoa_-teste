@@ -270,6 +270,32 @@ function _mostrarUltimaAtualizacaoOmie() {
 }
 window.atualizarPillOmie = _mostrarUltimaAtualizacaoOmie;
 
+async function validarOmieAtualizado() {
+  const ts = window.CFgAPI?.obter()?.ultimaAtualizacaoOmie;
+  if (!ts) return true; // sem registro de atualização, não bloqueia
+
+  const aprovado = !!window.propostaAtual?.aprovadoPeloGestor;
+  if (aprovado) return true; // gestor aprovou, libera
+
+  try {
+    const res = await fetch("https://ulhoa-0a02024d350a.herokuapp.com/api/server-time");
+    if (!res.ok) return true; // se backend falhar, não bloqueia
+    const { now } = await res.json();
+    const diasDesde = (new Date(now) - new Date(ts)) / (1000 * 60 * 60 * 24);
+    if (diasDesde > 30) {
+      alert(
+        `⚠️ Os preços da Omie foram atualizados há ${Math.floor(diasDesde)} dias.\n\n` +
+        `Propostas com preços desatualizados (mais de 30 dias) precisam ser aprovadas pelo gestor ou ter os preços atualizados antes de gerar o PDF.`
+      );
+      return false;
+    }
+  } catch (e) {
+    return true; // erro de rede não bloqueia
+  }
+  return true;
+}
+window.validarOmieAtualizado = validarOmieAtualizado;
+
 async function _salvarAprovadoGestor(novoValor) {
   const id = new URLSearchParams(window.location.search).get("id") || window.propostaAtual?._id;
   if (!id) { alert("ID da proposta não encontrado."); return; }
