@@ -312,6 +312,9 @@ async function enviarClienteParaAPI() {
 
     if (_clienteEditandoCodigo) {
       // ── Modo edição: atualiza cliente na Omie via PDV server ──────────────
+      // Remove codigo_cliente_integracao do body — a Omie o priorizaria e falharia
+      // com um código recém-gerado. O backend usa codigo_cliente_omie (URL param).
+      delete cliente.codigo_cliente_integracao;
       const resposta = await fetch(
         `https://ulhoa-0a02024d350a.herokuapp.com/clientes/${_clienteEditandoCodigo}`,
         { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cliente) }
