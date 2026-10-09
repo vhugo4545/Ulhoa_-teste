@@ -2663,8 +2663,8 @@ async function _mostrarModalAprovacaoMinimo(pendentes) {
             <span>Mínimo: <strong>${fmtBRL(s.valorMinimo)}</strong></span>
           </div>
           <div style="display:flex;gap:8px;">
-            <button data-acao="aprovar" data-id="${s._id}" style="flex:1;padding:9px 0;border:none;border-radius:8px;background:#16a34a;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">✓ Aprovar</button>
-            <button data-acao="negar"   data-id="${s._id}" style="flex:1;padding:9px 0;border:none;border-radius:8px;background:#ef4444;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">✗ Negar</button>
+            <button type="button" data-acao="aprovar" data-id="${s._id}" style="flex:1;padding:9px 0;border:none;border-radius:8px;background:#16a34a;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">✓ Aprovar</button>
+            <button type="button" data-acao="negar"   data-id="${s._id}" style="flex:1;padding:9px 0;border:none;border-radius:8px;background:#ef4444;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">✗ Negar</button>
           </div>
         </div>`;
     }).join("");
@@ -2673,11 +2673,11 @@ async function _mostrarModalAprovacaoMinimo(pendentes) {
       <div style="background:#fff;border-radius:16px;padding:28px 28px 24px;max-width:480px;width:95%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.25);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
           <span style="font-size:16px;font-weight:700;color:#111827;">Solicitações de valor mínimo</span>
-          <button id="_apmin_fechar" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:20px;line-height:1;">✕</button>
+          <button type="button" id="_apmin_fechar" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:20px;line-height:1;">✕</button>
         </div>
         ${itens}
         <div style="text-align:center;margin-top:4px;">
-          <button id="_apmin_pular" style="background:none;border:none;color:#6b7280;font-size:12px;cursor:pointer;text-decoration:underline;">Continuar sem decidir agora</button>
+          <button type="button" id="_apmin_pular" style="background:none;border:none;color:#6b7280;font-size:12px;cursor:pointer;text-decoration:underline;">Continuar sem decidir agora</button>
         </div>
       </div>`;
 
@@ -2779,8 +2779,8 @@ async function validarValorMinimoPermitido() {
             Ajuste o desconto ou o valor antes de prosseguir.
           </div>
           <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:4px;">
-            <button id="_vmin_fechar" style="padding:9px 20px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#374151;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;">Fechar</button>
-            <button id="_vmin_continuar" style="padding:9px 20px;border:none;border-radius:8px;background:#b91c1c;color:#fff;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;">Continuar mesmo assim</button>
+            <button type="button" id="_vmin_fechar" style="padding:9px 20px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#374151;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;">Fechar</button>
+            <button type="button" id="_vmin_continuar" style="padding:9px 20px;border:none;border-radius:8px;background:#b91c1c;color:#fff;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;">Continuar mesmo assim</button>
           </div>
         </div>`;
       document.body.appendChild(overlay);

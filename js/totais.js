@@ -434,7 +434,7 @@ function adicionarTotalizadoresPorAmbienteComAgrupamento() {
           const _dt = new Date(_pendente.dataHora).toLocaleString("pt-BR");
           _btnHtml = `
             <div style="position:relative;display:inline-block;margin-top:8px;" id="_apmin_drop_wrap">
-              <button onclick="_apminToggleDrop()" style="display:inline-flex;align-items:center;gap:6px;background:#f59e0b;color:#fff;border:none;border-radius:10px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
+              <button type="button" onclick="_apminToggleDrop()" style="display:inline-flex;align-items:center;gap:6px;background:#f59e0b;color:#fff;border:none;border-radius:10px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
                 <span class="material-icons-outlined" style="font-size:15px;">pending_actions</span>
                 Pendente · ${_dt}
                 <span class="material-icons-outlined" style="font-size:14px;">expand_more</span>
@@ -447,8 +447,8 @@ function adicionarTotalizadoresPorAmbienteComAgrupamento() {
                   <span>Mín: <strong>${_fmtBRL(_pendente.valorMinimo)}</strong></span>
                 </div>
                 <div style="display:flex;gap:8px;">
-                  <button onclick="_apminResolver('${_pendente._id}','aprovado')" style="flex:1;padding:8px 0;border:none;border-radius:8px;background:#16a34a;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">✓ Aprovar</button>
-                  <button onclick="_apminResolver('${_pendente._id}','negado')"  style="flex:1;padding:8px 0;border:none;border-radius:8px;background:#ef4444;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">✗ Negar</button>
+                  <button type="button" onclick="_apminResolver('${_pendente._id}','aprovado')" style="flex:1;padding:8px 0;border:none;border-radius:8px;background:#16a34a;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">✓ Aprovar</button>
+                  <button type="button" onclick="_apminResolver('${_pendente._id}','negado')"  style="flex:1;padding:8px 0;border:none;border-radius:8px;background:#ef4444;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">✗ Negar</button>
                 </div>
               </div>
             </div>`;
