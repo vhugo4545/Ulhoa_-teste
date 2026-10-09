@@ -239,11 +239,14 @@ function _mostrarUltimaAtualizacaoOmie() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Aguarda CFgAPI carregar antes de mostrar
+  // Tenta imediatamente, depois via evento, depois com fallback de polling curto
   if (window.CFgAPI?.obter()?.ultimaAtualizacaoOmie) {
     _mostrarUltimaAtualizacaoOmie();
   } else {
     document.addEventListener("cfgapi:pronto", _mostrarUltimaAtualizacaoOmie, { once: true });
+    // Fallback: verifica após 2s e 5s caso o evento já tenha disparado antes do listener
+    setTimeout(() => _mostrarUltimaAtualizacaoOmie(), 2000);
+    setTimeout(() => _mostrarUltimaAtualizacaoOmie(), 5000);
   }
 });
 
