@@ -1080,7 +1080,7 @@ function mostrarPopupCustomizado(titulo, mensagem, tipo = "info", onClose = null
   tituloEl.style.marginBottom = "12px";
 
   const mensagemEl = document.createElement("p");
-  mensagemEl.textContent = mensagem;
+  mensagemEl.innerHTML = mensagem;
   mensagemEl.style.marginBottom = "20px";
 
   const botao = document.createElement("button");
