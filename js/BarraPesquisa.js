@@ -228,6 +228,25 @@ async function carregarMapaUnidades() {
 }
 window.carregarMapaUnidades = carregarMapaUnidades;
 
+function _mostrarUltimaAtualizacaoOmie() {
+  const btn = document.getElementById("btn-ultima-atualizacao");
+  if (!btn) return;
+  const ts = window.CFgAPI?.obter()?.ultimaAtualizacaoOmie;
+  if (ts) {
+    btn.textContent = "Última atualização: " + new Date(ts).toLocaleString("pt-BR");
+    btn.style.display = "";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Aguarda CFgAPI carregar antes de mostrar
+  if (window.CFgAPI?.obter()?.ultimaAtualizacaoOmie) {
+    _mostrarUltimaAtualizacaoOmie();
+  } else {
+    document.addEventListener("cfgapi:pronto", _mostrarUltimaAtualizacaoOmie, { once: true });
+  }
+});
+
 async function atualizarPrecosOmieNaDOM() {
   const ENDPOINT = "https://ulhoa-0a02024d350a.herokuapp.com/produtos/visualizar";
 
@@ -337,6 +356,14 @@ async function atualizarPrecosOmieNaDOM() {
         alert("✔️ Todos os preços já estavam atualizados.");
       }
     }
+
+    // Salva timestamp no servidor (MongoDB via CFgAPI)
+    if (window.CFgAPI) {
+      const cfgAtual = window.CFgAPI.obter() || {};
+      cfgAtual.ultimaAtualizacaoOmie = new Date().toISOString();
+      window.CFgAPI.salvar(cfgAtual).catch(() => {});
+    }
+    _mostrarUltimaAtualizacaoOmie();
 
   } catch (err) {
     console.error("❌ Erro ao atualizar preços:", err);
