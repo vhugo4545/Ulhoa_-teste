@@ -247,8 +247,8 @@ async function enviarClienteParaAPI() {
 
   const cep = limparNumero(cepRaw);
 
-  // ── Verifica se já existe cliente com mesmo CNPJ/CPF na Omie ────────────
-  try {
+  // ── Verifica duplicidade apenas no modo criação ───────────────────────────
+  if (!_clienteEditandoCodigo) try {
     const buscaResp = await fetch(
       `https://ulhoa-0a02024d350a.herokuapp.com/clientes/buscar?cnpj_cpf=${cnpj_cpf}`
     );
@@ -282,7 +282,7 @@ async function enviarClienteParaAPI() {
     console.warn("⚠️ Não foi possível verificar duplicidade na Omie:", err.message);
   }
 
-  // Objeto exato enviado para o server -> Omie
+  // Objeto enviado para o server -> Omie
   const cliente = {
     codigo_cliente_integracao,
     razao_social,
