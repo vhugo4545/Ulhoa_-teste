@@ -237,44 +237,42 @@ function _mostrarUltimaAtualizacaoOmie() {
   const tipoUsuario = localStorage.getItem("usuarioTipo") || "usuario";
   const isGestor = ["admin", "gestor"].includes(tipoUsuario);
   const aprovado = !!window.propostaAtual?.aprovadoPeloGestor;
+  const cur = isGestor ? "pointer" : "default";
 
-  const cursorSel = isGestor ? "pointer" : "default";
   btn.innerHTML =
-    `<span>⟳ Omie: ${new Date(ts).toLocaleString("pt-BR")}</span>` +
+    `<span>Atualização de valores Omie: ${new Date(ts).toLocaleString("pt-BR")}</span>` +
     `<span style="margin-left:10px;display:inline-flex;border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.25);">` +
-      `<span id="badge-nao-aprovado" data-val="false" style="` +
-        `padding:2px 9px;font:600 11px Inter,Arial;user-select:none;cursor:${cursorSel};` +
+      `<span id="badge-nao-aprovado" data-val="false" style="padding:2px 9px;font:600 11px Inter,Arial;user-select:none;cursor:${cur};` +
         `background:${!aprovado ? "rgba(255,255,255,.25)" : "transparent"};` +
-        `color:${!aprovado ? "#fff" : "rgba(255,255,255,.45)"};` +
-        `border-right:1px solid rgba(255,255,255,.2);">` +
-        `${!aprovado ? "✓" : "○"} não aprovado` +
-      `</span>` +
-      `<span id="badge-aprovado" data-val="true" style="` +
-        `padding:2px 9px;font:600 11px Inter,Arial;user-select:none;cursor:${cursorSel};` +
+        `color:${!aprovado ? "#fff" : "rgba(255,255,255,.45)"};border-right:1px solid rgba(255,255,255,.2);">` +
+        `${!aprovado ? "✓" : "○"} não aprovado</span>` +
+      `<span id="badge-aprovado" data-val="true" style="padding:2px 9px;font:600 11px Inter,Arial;user-select:none;cursor:${cur};` +
         `background:${aprovado ? "rgba(255,255,255,.25)" : "transparent"};` +
         `color:${aprovado ? "#fff" : "rgba(255,255,255,.45)"};">` +
-        `${aprovado ? "✓" : "○"} aprovado pelo gestor` +
-      `</span>` +
+        `${aprovado ? "✓" : "○"} aprovado pelo gestor</span>` +
     `</span>`;
 
   btn.style.display = "";
   btn.style.pointerEvents = "auto";
 
   if (isGestor) {
-    ["badge-nao-aprovado", "badge-aprovado"].forEach(id => {
-      document.getElementById(id)?.addEventListener("click", async e => {
+    ["badge-nao-aprovado", "badge-aprovado"].forEach(badgeId => {
+      document.getElementById(badgeId)?.addEventListener("click", async e => {
         e.stopPropagation();
         const novoValor = e.currentTarget.dataset.val === "true";
         if (novoValor === !!window.propostaAtual?.aprovadoPeloGestor) return;
-        await _toggleAprovadoGestor(novoValor);
+        const label = novoValor ? "aprovado pelo gestor" : "não aprovado";
+        if (!confirm(`Confirmar alteração para "${label}"?`)) return;
+        await _salvarAprovadoGestor(novoValor);
       });
     });
   }
 }
+window.atualizarPillOmie = _mostrarUltimaAtualizacaoOmie;
 
-async function _toggleAprovadoGestor(novoValor) {
-  const id = new URLSearchParams(location.search).get("id") || window.propostaAtual?._id;
-  if (!id) return;
+async function _salvarAprovadoGestor(novoValor) {
+  const id = new URLSearchParams(window.location.search).get("id") || window.propostaAtual?._id;
+  if (!id) { alert("ID da proposta não encontrado."); return; }
   try {
     const res = await fetch(
       `https://ulhoa-0a02024d350a.herokuapp.com/api/propostas/${id}`,
@@ -294,12 +292,10 @@ async function _toggleAprovadoGestor(novoValor) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Tenta imediatamente, depois via evento, depois com fallback de polling curto
   if (window.CFgAPI?.obter()?.ultimaAtualizacaoOmie) {
     _mostrarUltimaAtualizacaoOmie();
   } else {
     document.addEventListener("cfgapi:pronto", _mostrarUltimaAtualizacaoOmie, { once: true });
-    // Fallback: verifica após 2s e 5s caso o evento já tenha disparado antes do listener
     setTimeout(() => _mostrarUltimaAtualizacaoOmie(), 2000);
     setTimeout(() => _mostrarUltimaAtualizacaoOmie(), 5000);
   }
