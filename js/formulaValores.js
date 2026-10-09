@@ -645,8 +645,7 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
             <span style="font-size:10px;color:#888;font-weight:400;">(Clicksign / Kommo)</span>
           </label>
           <input type="date" name="dataAssinaturaCliente"
-            class="form-control form-control-sm"
-            ${!isAdmin ? "readonly style='background:#f3f3f3;'" : ""}>
+            class="form-control form-control-sm">
         </div>
 
         <div>
@@ -655,8 +654,7 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
             <span style="font-size:10px;color:#888;font-weight:400;">(Sistema de Produção)</span>
           </label>
           <input type="date" name="dataInstalacaoEstrutura"
-            class="form-control form-control-sm"
-            readonly style="background:#f3f3f3;">
+            class="form-control form-control-sm">
         </div>
 
         <div>
@@ -665,8 +663,7 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
             <span style="font-size:10px;color:#888;font-weight:400;">(Produção / Compras)</span>
           </label>
           <input type="date" name="dataPagamentoVidros"
-            class="form-control form-control-sm"
-            readonly style="background:#f3f3f3;">
+            class="form-control form-control-sm">
         </div>
 
         <div>
@@ -675,8 +672,7 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
             <span style="font-size:10px;color:#888;font-weight:400;">(Produção / Compras)</span>
           </label>
           <input type="date" name="dataLiberacaoFornecedor"
-            class="form-control form-control-sm"
-            readonly style="background:#f3f3f3;">
+            class="form-control form-control-sm">
         </div>
 
         <div>
@@ -685,8 +681,7 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
             <span style="font-size:10px;color:#888;font-weight:400;">(igual p/ todos os itens)</span>
           </label>
           <input type="date" name="dataAssinaturaContrato"
-            class="form-control form-control-sm"
-            readonly style="background:#f3f3f3;">
+            class="form-control form-control-sm">
         </div>
 
       </div>
