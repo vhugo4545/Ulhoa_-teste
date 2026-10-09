@@ -2251,28 +2251,34 @@
 
   // Mapeamentos padrão: usa field_id como string para Kommo
   const MAP_DEFAULTS = [
+    // Endereço Principal (Obra)
     { pdv: 'rua',                           kommo: '1725250'   },
     { pdv: 'numero',                        kommo: '1725254'   },
     { pdv: 'complemento',                   kommo: '1725258'   },
     { pdv: 'bairro',                        kommo: '1725256'   },
     { pdv: 'cidade',                        kommo: '1725260'   },
+    // Endereço de Cobrança
     { pdv: 'ruaObra',                       kommo: '1790958'   },
     { pdv: 'numeroObra',                    kommo: '1790960'   },
     { pdv: 'complementoObra',               kommo: '1790962'   },
     { pdv: 'bairroObra',                    kommo: '1790964'   },
     { pdv: 'cidadeObra',                    kommo: '1790966'   },
+    // Financeiro
     { pdv: 'valorNFProduto',                kommo: '1790646'   },
     { pdv: 'valorNFServico',                kommo: '1790644'   },
     { pdv: 'valorFatDireto',                kommo: '1790986'   },
     { pdv: 'valorVenda',                    kommo: '__value__' },
     { pdv: 'desconto',                      kommo: '1802386'   },
+    // Identificação
     { pdv: 'numeroOrcamento',               kommo: '1710738'   },
     { pdv: 'numeroPedido',                  kommo: '1716834'   },
     { pdv: 'clientes[0].nome_razao_social', kommo: '1791998'   },
     { pdv: 'origemCliente',                 kommo: '1716838'   },
+    // Condições
     { pdv: 'condicoesGerais',               kommo: '1790968'   },
     { pdv: 'prazoPrevisto',                 kommo: '1790862'   },
     { pdv: 'parcelas[0].data',              kommo: '1723710'   },
+    // Acompanhamento
     { pdv: 'dataPedidoEnviadoCliente',      kommo: '1793090'   },
     { pdv: 'dataMedicaoRealizada',          kommo: '1793096'   },
     { pdv: 'dataLiberacaoObra',             kommo: '1793094'   },
