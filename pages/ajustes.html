@@ -233,6 +233,104 @@
 
     /* full-width card */
     .ajustes-grid .card-full { grid-column: 1 / -1; }
+
+    /* ── Mapeamento de Campos ── */
+    .map-section-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      background: var(--primary-light);
+    }
+    .map-section-head h3 { flex: 1; font-size: 13px; font-weight: 700; color: var(--text); }
+    .map-section-head .material-icons-outlined { font-size: 18px; color: var(--primary); }
+    .map-table-wrap { overflow-x: auto; }
+    .map-table { width: 100%; border-collapse: collapse; }
+    .map-table th {
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
+      color: var(--text-muted); padding: 8px 14px; background: var(--primary-light);
+      border-bottom: 1px solid var(--border); white-space: nowrap;
+      position: sticky; top: 0; z-index: 1;
+    }
+    .map-table td { padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: 12px; vertical-align: middle; }
+    .map-table tr:last-child td { border-bottom: none; }
+    .map-table tr:hover td { background: var(--primary-light); }
+    .map-select {
+      padding: 6px 28px 6px 10px; border: 1px solid var(--border); border-radius: 7px;
+      background: var(--surface); color: var(--text); font-size: 12px; font-family: var(--font);
+      cursor: pointer; width: 100%; min-width: 160px; max-width: 280px;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 8px center;
+    }
+    .map-select:focus { outline: none; border-color: var(--primary); }
+    .map-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 2px 8px; border-radius: 100px; font-size: 10px; font-weight: 700;
+      background: var(--primary-light); color: var(--text-muted); border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .map-badge.date   { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .map-badge.num    { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+    .map-del-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border: none; background: none; cursor: pointer;
+      color: #94a3b8; border-radius: 6px; transition: all .15s;
+    }
+    .map-del-btn:hover { background: #fee2e2; color: #b91c1c; }
+    .map-del-btn .material-icons-outlined { font-size: 16px; }
+    .map-actions { padding: 10px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .map-btn {
+      display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px;
+      border-radius: 8px; font: 600 12px var(--font); cursor: pointer; border: none; transition: all .15s;
+    }
+    .map-btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+    .map-btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+    .map-btn-primary { background: var(--primary); color: #fff; }
+    .map-btn-primary:hover { background: var(--primary-hover); }
+    .map-btn .material-icons-outlined { font-size: 15px; }
+    .map-status { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+    .map-status.ok  { color: #15803d; }
+    .map-status.err { color: #b91c1c; }
+
+    /* ── Teste de Integração ── */
+    .test-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .test-proposta-id {
+      font: 500 11px 'JetBrains Mono', monospace;
+      background: var(--primary-light); border: 1px solid var(--border);
+      padding: 3px 8px; border-radius: 5px; color: var(--text-muted);
+    }
+    .test-btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .test-btn {
+      display: flex; align-items: center; gap: 8px; padding: 11px 18px;
+      border-radius: 8px; font: 600 13px var(--font); cursor: pointer; border: none;
+      transition: all .18s; position: relative; overflow: hidden;
+    }
+    .test-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .test-btn .material-icons-outlined { font-size: 18px; }
+    .test-btn-pdv-kommo { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .test-btn-pdv-kommo:hover:not(:disabled) { background: #dbeafe; }
+    .test-btn-kommo-pdv { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    .test-btn-kommo-pdv:hover:not(:disabled) { background: #dcfce7; }
+    .test-btn-compare  { background: var(--primary-light); color: var(--text); border: 1px solid var(--border); }
+    .test-btn-compare:hover:not(:disabled)  { background: #e2e8f0; }
+    .test-result { margin-top: 16px; }
+    .test-result-msg { font-size: 12px; margin-bottom: 12px; padding: 10px 14px; border-radius: 8px; }
+    .test-result-msg.ok  { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .test-result-msg.err { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .test-result-msg.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .test-cmp-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 4px; }
+    .test-cmp-table th {
+      padding: 6px 10px; background: var(--primary-light); font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted);
+      border-bottom: 1px solid var(--border); text-align: left;
+    }
+    .test-cmp-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+    .test-cmp-table tr:last-child td { border-bottom: none; }
+    .test-cmp-table .match-ok  td:first-child { border-left: 3px solid #22c55e; }
+    .test-cmp-table .match-fail td:first-child { border-left: 3px solid #f59e0b; }
+    .test-cmp-table .match-empty td:first-child { border-left: 3px solid #e2e8f0; }
+    .test-spin { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor;
+      border-top-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
   <script src="../js/authFetch.js"></script>
 </head>
@@ -656,6 +754,74 @@
       <!-- Restaurar padrão -->
       <div style="grid-column: 1 / -1; display:flex; gap:10px; align-items:center;">
         <button class="cfg-reset-btn" onclick="cfgResetar()">Restaurar padrão</button>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           SEÇÃO: Mapeamento de Campos PDV ↔ Kommo
+           ══════════════════════════════════════════════════════ -->
+      <div class="card" style="grid-column: 1 / -1; padding:0; overflow:hidden;">
+        <div class="map-section-head">
+          <span class="material-icons-outlined">compare_arrows</span>
+          <h3>Mapeamento de Campos PDV ↔ Kommo</h3>
+          <span id="map-count-badge" style="font-size:11px;color:var(--text-muted);background:var(--primary-light);border:1px solid var(--border);padding:2px 8px;border-radius:100px;font-weight:600;">0 campos</span>
+        </div>
+        <div class="map-table-wrap" style="max-height:460px;overflow-y:auto;">
+          <table class="map-table">
+            <thead>
+              <tr>
+                <th style="width:32px;">#</th>
+                <th>Campo PDV (camposFormulario)</th>
+                <th style="width:24px;text-align:center;">→</th>
+                <th>Campo Kommo</th>
+                <th style="width:80px;">Field ID</th>
+                <th style="width:70px;">Tipo</th>
+                <th style="width:36px;"></th>
+              </tr>
+            </thead>
+            <tbody id="map-tbody"></tbody>
+          </table>
+        </div>
+        <div class="map-actions">
+          <button class="map-btn map-btn-ghost" onclick="mapAddRow()">
+            <span class="material-icons-outlined">add</span>Adicionar
+          </button>
+          <button class="map-btn map-btn-ghost" onclick="mapRestoreDefaults()">
+            <span class="material-icons-outlined">restore</span>Restaurar Padrões
+          </button>
+          <button class="map-btn map-btn-primary" onclick="mapSave()">
+            <span class="material-icons-outlined">save</span>Salvar
+          </button>
+          <span id="map-save-status" class="map-status"></span>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           SEÇÃO: Teste de Integração PDV ↔ Kommo
+           ══════════════════════════════════════════════════════ -->
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-title">
+          <span class="material-icons-outlined">science</span>
+          Teste de Integração PDV ↔ Kommo
+        </div>
+        <div class="test-header">
+          <span style="font-size:13px;color:var(--text-muted);">Proposta de teste:</span>
+          <span class="test-proposta-id">6abe66732fd100408e7295a4</span>
+        </div>
+        <div class="test-btn-row">
+          <button class="test-btn test-btn-pdv-kommo" id="btn-test-pdv-kommo" onclick="testPdvToKommo()">
+            <span class="material-icons-outlined">upload</span>
+            Testar PDV → Kommo
+          </button>
+          <button class="test-btn test-btn-kommo-pdv" id="btn-test-kommo-pdv" onclick="testKommoToPdv()">
+            <span class="material-icons-outlined">download</span>
+            Testar Kommo → PDV
+          </button>
+          <button class="test-btn test-btn-compare" id="btn-test-compare" onclick="testCompare()">
+            <span class="material-icons-outlined">compare</span>
+            Ver Comparação
+          </button>
+        </div>
+        <div class="test-result" id="test-result" hidden></div>
       </div>
 
     </div>
@@ -2071,6 +2237,355 @@
         </div>
       </div>`;
   }
+
+  // ══════════════════════════════════════════════════════════════
+  // MAPEAMENTO DE CAMPOS PDV ↔ KOMMO
+  // ══════════════════════════════════════════════════════════════
+  const KOMMO_SERVER = 'https://kommo-server-9f1243cbe450.herokuapp.com';
+  const TEST_PROPOSTA_ID = '6abe66732fd100408e7295a4';
+
+  const PDV_FIELDS_LIST = [
+    // Endereço Principal
+    { key: 'rua',                          label: 'Rua',                          group: 'Endereço Principal',  type: 'text'    },
+    { key: 'numero',                       label: 'Número',                       group: 'Endereço Principal',  type: 'text'    },
+    { key: 'complemento',                  label: 'Complemento',                  group: 'Endereço Principal',  type: 'text'    },
+    { key: 'bairro',                       label: 'Bairro',                       group: 'Endereço Principal',  type: 'text'    },
+    { key: 'cidade',                       label: 'Cidade',                       group: 'Endereço Principal',  type: 'text'    },
+    { key: 'cep',                          label: 'CEP',                          group: 'Endereço Principal',  type: 'text'    },
+    { key: 'estado',                       label: 'Estado',                       group: 'Endereço Principal',  type: 'text'    },
+    // Endereço da Obra
+    { key: 'ruaObra',                      label: 'Rua (Obra)',                   group: 'Endereço da Obra',    type: 'text'    },
+    { key: 'numeroObra',                   label: 'Número (Obra)',                group: 'Endereço da Obra',    type: 'text'    },
+    { key: 'complementoObra',              label: 'Complemento (Obra)',           group: 'Endereço da Obra',    type: 'text'    },
+    { key: 'bairroObra',                   label: 'Bairro (Obra)',                group: 'Endereço da Obra',    type: 'text'    },
+    { key: 'cidadeObra',                   label: 'Cidade (Obra)',                group: 'Endereço da Obra',    type: 'text'    },
+    { key: 'cepObra',                      label: 'CEP (Obra)',                   group: 'Endereço da Obra',    type: 'text'    },
+    { key: 'estadoObra',                   label: 'Estado (Obra)',                group: 'Endereço da Obra',    type: 'text'    },
+    // Identificação
+    { key: 'numeroOrcamento',              label: 'Nº Orçamento',                 group: 'Identificação',       type: 'numeric' },
+    { key: 'numeroPedido',                 label: 'Nº Pedido',                    group: 'Identificação',       type: 'text'    },
+    { key: 'vendedorResponsavel',          label: 'Vendedor Responsável',         group: 'Identificação',       type: 'text'    },
+    { key: 'origemCliente',                label: 'Origem do Cliente',            group: 'Identificação',       type: 'text'    },
+    { key: 'clientes[0].nome_razao_social',label: 'Nome / Razão Social',          group: 'Identificação',       type: 'text'    },
+    // Financeiro
+    { key: 'valorVenda',                   label: 'Valor de Venda',               group: 'Financeiro',          type: 'numeric' },
+    { key: 'valorNFProduto',               label: 'Valor NF Produto',             group: 'Financeiro',          type: 'numeric' },
+    { key: 'valorNFServico',               label: 'Valor NF Serviço',             group: 'Financeiro',          type: 'numeric' },
+    { key: 'valorFatDireto',               label: 'Valor Fat. Direto',            group: 'Financeiro',          type: 'numeric' },
+    { key: 'desconto',                     label: 'Desconto',                     group: 'Financeiro',          type: 'numeric' },
+    // Condições
+    { key: 'condicoesGerais',              label: 'Condições Gerais',             group: 'Condições',           type: 'text'    },
+    { key: 'parcelas[0].data',             label: 'Parcela 1 — Data',             group: 'Condições',           type: 'date'    },
+    // Datas
+    { key: 'dataOrcamento',                label: 'Data do Orçamento',            group: 'Datas',               type: 'date'    },
+    { key: 'prazoPrevisto',                label: 'Prazo Previsto',               group: 'Datas',               type: 'date'    },
+    { key: 'dataPedidoEnviadoCliente',     label: 'Pedido Enviado ao Cliente',    group: 'Datas',               type: 'date'    },
+    { key: 'dataPedidoAssinado',           label: 'Pedido Assinado (ClickSign)',  group: 'Datas',               type: 'date', locked: true },
+    { key: 'dataMedicaoRealizada',         label: 'Medição Realizada',            group: 'Datas',               type: 'date'    },
+    { key: 'dataLiberacaoObra',            label: 'Liberação da Obra',            group: 'Datas',               type: 'date'    },
+    { key: 'dataProjetoEnviado',           label: 'Projeto Enviado',              group: 'Datas',               type: 'date'    },
+    { key: 'dataProjetoAssinado',          label: 'Projeto Assinado',             group: 'Datas',               type: 'date'    },
+  ];
+
+  const KOMMO_FIELDS_LIST = [
+    { key: 'kommo_rua',                  field_id: 1725250,     label: 'Rua (Obra)',              group: 'Endereço Obra',    type: 'text'    },
+    { key: 'kommo_numero',               field_id: 1725254,     label: 'Número (Obra)',           group: 'Endereço Obra',    type: 'text'    },
+    { key: 'kommo_complemento',          field_id: 1725258,     label: 'Complemento (Obra)',      group: 'Endereço Obra',    type: 'text'    },
+    { key: 'kommo_bairro',               field_id: 1725256,     label: 'Bairro (Obra)',           group: 'Endereço Obra',    type: 'text'    },
+    { key: 'kommo_cidade',               field_id: 1725260,     label: 'Cidade (Obra)',           group: 'Endereço Obra',    type: 'text'    },
+    { key: 'kommo_rua_cobranca',         field_id: 1790958,     label: 'Rua (Cobrança)',          group: 'Endereço Cobrança',type: 'text'    },
+    { key: 'kommo_numero_cobranca',      field_id: 1790960,     label: 'Número (Cobrança)',       group: 'Endereço Cobrança',type: 'text'    },
+    { key: 'kommo_complemento_cobranca', field_id: 1790962,     label: 'Complemento (Cobrança)', group: 'Endereço Cobrança',type: 'text'    },
+    { key: 'kommo_bairro_cobranca',      field_id: 1790964,     label: 'Bairro (Cobrança)',       group: 'Endereço Cobrança',type: 'text'    },
+    { key: 'kommo_cidade_cobranca',      field_id: 1790966,     label: 'Cidade (Cobrança)',       group: 'Endereço Cobrança',type: 'text'    },
+    { key: 'kommo_valor_nf_produto',     field_id: 1790646,     label: 'Valor NF Produto',        group: 'Financeiro',       type: 'numeric' },
+    { key: 'kommo_valor_nf_servico',     field_id: 1790644,     label: 'Valor NF Serviço',        group: 'Financeiro',       type: 'numeric' },
+    { key: 'kommo_valor_fat_direto',     field_id: 1790986,     label: 'Valor Fat. Direto',       group: 'Financeiro',       type: 'numeric' },
+    { key: 'kommo_valor_venda',          field_id: '__value__', label: 'Valor de Venda (Lead)',   group: 'Financeiro',       type: 'numeric' },
+    { key: 'kommo_desconto',             field_id: 1802386,     label: 'Desconto',                group: 'Financeiro',       type: 'numeric' },
+    { key: 'kommo_numero_orcamento',     field_id: 1710738,     label: 'Nº Orçamento',            group: 'Identificação',    type: 'numeric' },
+    { key: 'kommo_numero_pedido',        field_id: 1716834,     label: 'Nº Pedido',               group: 'Identificação',    type: 'text'    },
+    { key: 'kommo_nome_razao_social',    field_id: 1791998,     label: 'Nome / Razão Social',     group: 'Identificação',    type: 'text'    },
+    { key: 'kommo_id_pdv',               field_id: 1793228,     label: 'ID PDV',                  group: 'Identificação',    type: 'text'    },
+    { key: 'kommo_origem',               field_id: 1716838,     label: 'Origem do Cliente',       group: 'Identificação',    type: 'text'    },
+    { key: 'kommo_vencimento_entrada',   field_id: 1723710,     label: 'Vencimento Entrada',      group: 'Datas',            type: 'date'    },
+    { key: 'kommo_contrato_enviado',     field_id: 1793090,     label: 'Contrato Enviado',        group: 'Datas',            type: 'date'    },
+    { key: 'kommo_contrato_assinado',    field_id: 1793088,     label: 'Assinado (ClickSign) ⚠️', group: 'Datas',            type: 'date', locked: true },
+    { key: 'kommo_projeto_enviado',      field_id: 1793092,     label: 'Projeto Enviado',         group: 'Datas',            type: 'date'    },
+    { key: 'kommo_obra_liberada',        field_id: 1793094,     label: 'Obra Liberada',           group: 'Datas',            type: 'date'    },
+    { key: 'kommo_medicao_realizada',    field_id: 1793096,     label: 'Medição Realizada',       group: 'Datas',            type: 'date'    },
+    { key: 'kommo_assinatura_projeto',   field_id: 1790990,     label: 'Assinatura Projeto',      group: 'Datas',            type: 'date'    },
+    { key: 'kommo_data_prevista',        field_id: 1790862,     label: 'Data Prevista',           group: 'Datas',            type: 'date'    },
+    { key: 'kommo_observacao',           field_id: 1790968,     label: 'Observações',             group: 'Outros',           type: 'text'    },
+  ];
+
+  const MAP_DEFAULTS = [
+    { pdv: 'rua',                          kommo: 'kommo_rua'                  },
+    { pdv: 'numero',                       kommo: 'kommo_numero'               },
+    { pdv: 'complemento',                  kommo: 'kommo_complemento'          },
+    { pdv: 'bairro',                       kommo: 'kommo_bairro'               },
+    { pdv: 'cidade',                       kommo: 'kommo_cidade'               },
+    { pdv: 'ruaObra',                      kommo: 'kommo_rua_cobranca'         },
+    { pdv: 'numeroObra',                   kommo: 'kommo_numero_cobranca'      },
+    { pdv: 'complementoObra',              kommo: 'kommo_complemento_cobranca' },
+    { pdv: 'bairroObra',                   kommo: 'kommo_bairro_cobranca'      },
+    { pdv: 'cidadeObra',                   kommo: 'kommo_cidade_cobranca'      },
+    { pdv: 'valorNFProduto',               kommo: 'kommo_valor_nf_produto'     },
+    { pdv: 'valorNFServico',               kommo: 'kommo_valor_nf_servico'     },
+    { pdv: 'valorFatDireto',               kommo: 'kommo_valor_fat_direto'     },
+    { pdv: 'valorVenda',                   kommo: 'kommo_valor_venda'          },
+    { pdv: 'desconto',                     kommo: 'kommo_desconto'             },
+    { pdv: 'numeroOrcamento',              kommo: 'kommo_numero_orcamento'     },
+    { pdv: 'numeroPedido',                 kommo: 'kommo_numero_pedido'        },
+    { pdv: 'clientes[0].nome_razao_social',kommo: 'kommo_nome_razao_social'    },
+    { pdv: 'origemCliente',                kommo: 'kommo_origem'               },
+    { pdv: 'condicoesGerais',              kommo: 'kommo_observacao'           },
+    { pdv: 'prazoPrevisto',                kommo: 'kommo_data_prevista'        },
+    { pdv: 'parcelas[0].data',             kommo: 'kommo_vencimento_entrada'   },
+    { pdv: 'dataPedidoEnviadoCliente',     kommo: 'kommo_contrato_enviado'     },
+    { pdv: 'dataMedicaoRealizada',         kommo: 'kommo_medicao_realizada'    },
+    { pdv: 'dataLiberacaoObra',            kommo: 'kommo_obra_liberada'        },
+    { pdv: 'dataProjetoEnviado',           kommo: 'kommo_projeto_enviado'      },
+    { pdv: 'dataProjetoAssinado',          kommo: 'kommo_assinatura_projeto'   },
+  ];
+
+  let _mapData = [];
+
+  function mapLoad() {
+    try {
+      const saved = localStorage.getItem('field-mappings-v3');
+      _mapData = saved ? JSON.parse(saved) : MAP_DEFAULTS.map(m => ({...m}));
+    } catch(_) { _mapData = MAP_DEFAULTS.map(m => ({...m})); }
+    mapRender();
+  }
+
+  function mapSyncFromDOM() {
+    const rows = document.querySelectorAll('#map-tbody tr[data-map-idx]');
+    _mapData = [];
+    rows.forEach(r => {
+      const p = r.querySelector('.map-sel-pdv').value;
+      const k = r.querySelector('.map-sel-kommo').value;
+      if (p && k) _mapData.push({ pdv: p, kommo: k });
+    });
+  }
+
+  function mapSave() {
+    mapSyncFromDOM();
+    try { localStorage.setItem('field-mappings-v3', JSON.stringify(_mapData)); } catch(_) {}
+    const st = document.getElementById('map-save-status');
+    st.textContent = '✓ Salvo';
+    st.className = 'map-status ok';
+    setTimeout(() => { st.textContent = ''; st.className = 'map-status'; }, 2500);
+    mapRender();
+  }
+
+  function mapRestoreDefaults() {
+    _mapData = MAP_DEFAULTS.map(m => ({...m}));
+    try { localStorage.setItem('field-mappings-v3', JSON.stringify(_mapData)); } catch(_) {}
+    mapRender();
+    const st = document.getElementById('map-save-status');
+    st.textContent = '✓ Padrões restaurados';
+    st.className = 'map-status ok';
+    setTimeout(() => { st.textContent = ''; st.className = 'map-status'; }, 2500);
+  }
+
+  function mapAddRow() {
+    mapSyncFromDOM();
+    _mapData.push({ pdv: '', kommo: '' });
+    mapRender();
+    const rows = document.querySelectorAll('#map-tbody tr[data-map-idx]');
+    if (rows.length) rows[rows.length-1].scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+
+  function mapDelRow(i) {
+    mapSyncFromDOM();
+    _mapData.splice(i, 1);
+    mapRender();
+  }
+
+  function mapRowChange(i) {
+    const row = document.querySelector(`tr[data-map-idx="${i}"]`);
+    if (!row) return;
+    const kommoKey = row.querySelector('.map-sel-kommo').value;
+    const kf = KOMMO_FIELDS_LIST.find(f => f.key === kommoKey);
+    row.cells[4].innerHTML = kf ? `<code style="font-size:10px;color:var(--text-muted)">${kf.field_id}</code>` : '';
+    row.cells[5].innerHTML = kf ? mapTypeBadge(kf.type) : '';
+    document.getElementById('map-count-badge').textContent = `${_mapData.length + 1} campos`;
+  }
+
+  function mapTypeBadge(type) {
+    if (type === 'date')    return '<span class="map-badge date">Data</span>';
+    if (type === 'numeric') return '<span class="map-badge num">Número</span>';
+    return '<span class="map-badge">Texto</span>';
+  }
+
+  function mapBuildPdvOptions(sel) {
+    let html = '<option value="">— Campo PDV —</option>';
+    let lastGroup = '';
+    PDV_FIELDS_LIST.forEach(f => {
+      if (f.group !== lastGroup) {
+        if (lastGroup) html += '</optgroup>';
+        html += `<optgroup label="${f.group}">`;
+        lastGroup = f.group;
+      }
+      const lock = f.locked ? ' 🔒' : '';
+      html += `<option value="${f.key}"${f.key===sel?' selected':''}>${f.label}${lock}</option>`;
+    });
+    if (lastGroup) html += '</optgroup>';
+    return html;
+  }
+
+  function mapBuildKommoOptions(sel) {
+    let html = '<option value="">— Campo Kommo —</option>';
+    let lastGroup = '';
+    KOMMO_FIELDS_LIST.forEach(f => {
+      if (f.group !== lastGroup) {
+        if (lastGroup) html += '</optgroup>';
+        html += `<optgroup label="${f.group}">`;
+        lastGroup = f.group;
+      }
+      html += `<option value="${f.key}"${f.key===sel?' selected':''}>${f.label}</option>`;
+    });
+    if (lastGroup) html += '</optgroup>';
+    return html;
+  }
+
+  function mapRender() {
+    const tbody = document.getElementById('map-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = _mapData.map((m, i) => {
+      const kf = KOMMO_FIELDS_LIST.find(f => f.key === m.kommo);
+      const fid = kf ? kf.field_id : '';
+      return `<tr data-map-idx="${i}">
+        <td style="color:var(--text-muted);font-size:11px;">${i+1}</td>
+        <td><select class="map-select map-sel-pdv" onchange="mapRowChange(${i})">${mapBuildPdvOptions(m.pdv)}</select></td>
+        <td style="text-align:center;color:var(--text-muted);">→</td>
+        <td><select class="map-select map-sel-kommo" onchange="mapRowChange(${i})">${mapBuildKommoOptions(m.kommo)}</select></td>
+        <td>${fid ? `<code style="font-size:10px;color:var(--text-muted)">${fid}</code>` : ''}</td>
+        <td>${kf ? mapTypeBadge(kf.type) : ''}</td>
+        <td><button class="map-del-btn" onclick="mapDelRow(${i})" title="Remover"><span class="material-icons-outlined">delete_outline</span></button></td>
+      </tr>`;
+    }).join('');
+    document.getElementById('map-count-badge').textContent = `${_mapData.length} campos`;
+  }
+
+  mapLoad();
+
+  // ══════════════════════════════════════════════════════════════
+  // TESTE DE INTEGRAÇÃO
+  // ══════════════════════════════════════════════════════════════
+  function testSetLoading(btnId, loading) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    if (loading) {
+      btn.disabled = true;
+      btn.dataset.origHtml = btn.innerHTML;
+      btn.innerHTML = `<span class="test-spin"></span> Aguardando…`;
+    } else {
+      btn.disabled = false;
+      if (btn.dataset.origHtml) btn.innerHTML = btn.dataset.origHtml;
+    }
+  }
+
+  function testShowResult(html) {
+    const el = document.getElementById('test-result');
+    el.innerHTML = html;
+    el.hidden = false;
+  }
+
+  async function testPdvToKommo() {
+    testSetLoading('btn-test-pdv-kommo', true);
+    testShowResult(`<div class="test-result-msg info"><span class="test-spin"></span> Sincronizando PDV → Kommo…</div>`);
+    try {
+      const res = await fetch(`${KOMMO_SERVER}/proposta/${TEST_PROPOSTA_ID}/sync-fields`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      if (data.skipped) {
+        testShowResult(`<div class="test-result-msg info">⚠️ Nenhum campo para sincronizar: ${data.reason || ''}</div>`);
+      } else {
+        testShowResult(`<div class="test-result-msg ok">✅ PDV → Kommo concluído — ${data.campos_sincronizados} campo(s) atualizados na Kommo (Lead ${data.lead_id})</div>`);
+      }
+    } catch (e) {
+      testShowResult(`<div class="test-result-msg err">❌ Erro PDV → Kommo: ${e.message}</div>`);
+    } finally {
+      testSetLoading('btn-test-pdv-kommo', false);
+    }
+  }
+
+  async function testKommoToPdv() {
+    testSetLoading('btn-test-kommo-pdv', true);
+    testShowResult(`<div class="test-result-msg info"><span class="test-spin"></span> Sincronizando Kommo → PDV…</div>`);
+    try {
+      const res = await fetch(`${KOMMO_SERVER}/proposta/${TEST_PROPOSTA_ID}/kommo-to-pdv`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      if (data.skipped) {
+        testShowResult(`<div class="test-result-msg info">⚠️ Nenhum campo para sincronizar: ${data.reason || ''}</div>`);
+      } else {
+        let rows = (data.detalhes || []).map(d =>
+          `<tr><td>${d.label}</td><td style="font-family:monospace;font-size:11px;">${d.value ?? '—'}</td></tr>`
+        ).join('');
+        testShowResult(`<div class="test-result-msg ok">✅ Kommo → PDV concluído — ${data.campos_atualizados} campo(s) atualizados na proposta</div>
+          <div class="map-table-wrap" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-top:8px;">
+            <table class="test-cmp-table">
+              <thead><tr><th>Campo</th><th>Valor recebido da Kommo</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>`);
+      }
+    } catch (e) {
+      testShowResult(`<div class="test-result-msg err">❌ Erro Kommo → PDV: ${e.message}</div>`);
+    } finally {
+      testSetLoading('btn-test-kommo-pdv', false);
+    }
+  }
+
+  async function testCompare() {
+    testSetLoading('btn-test-compare', true);
+    testShowResult(`<div class="test-result-msg info"><span class="test-spin"></span> Buscando dados de PDV e Kommo…</div>`);
+    try {
+      const res = await fetch(`${KOMMO_SERVER}/proposta/${TEST_PROPOSTA_ID}/test-sync`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+      const cmp = data.comparison || [];
+      const total  = cmp.length;
+      const ok     = cmp.filter(r => r.match).length;
+      const diff   = cmp.filter(r => !r.match && !r.missing_kommo).length;
+      const empty  = cmp.filter(r => r.missing_kommo).length;
+
+      const rows = cmp.map(r => {
+        const cls = r.match ? 'match-ok' : r.missing_kommo ? 'match-empty' : 'match-fail';
+        const icon = r.match ? '✓' : r.missing_kommo ? '○' : '≠';
+        const iconColor = r.match ? '#22c55e' : r.missing_kommo ? '#94a3b8' : '#f59e0b';
+        return `<tr class="${cls}">
+          <td style="font-size:12px;">${r.label}</td>
+          <td style="font-family:monospace;font-size:11px;color:#475569;">${r.pdv_value || '<em style="color:#94a3b8">vazio</em>'}</td>
+          <td style="font-family:monospace;font-size:11px;color:#475569;">${r.kommo_value || '<em style="color:#94a3b8">vazio</em>'}</td>
+          <td style="text-align:center;font-size:13px;font-weight:700;color:${iconColor};">${icon}</td>
+        </tr>`;
+      }).join('');
+
+      testShowResult(`
+        <div style="display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
+          <span style="background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700;">✓ ${ok} sincronizados</span>
+          ${diff  ? `<span style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700;">≠ ${diff} diferentes</span>` : ''}
+          ${empty ? `<span style="background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700;">○ ${empty} sem valor Kommo</span>` : ''}
+          <span style="margin-left:auto;font-size:11px;color:var(--text-muted);">Lead: ${data.lead_id} — ${data.lead_nome || ''}</span>
+        </div>
+        <div class="map-table-wrap" style="max-height:380px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+          <table class="test-cmp-table">
+            <thead><tr><th>Campo</th><th>PDV</th><th>Kommo</th><th style="text-align:center;">Status</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`);
+    } catch (e) {
+      testShowResult(`<div class="test-result-msg err">❌ Erro ao comparar: ${e.message}</div>`);
+    } finally {
+      testSetLoading('btn-test-compare', false);
+    }
+  }
+
   </script>
 </body>
 </html>
