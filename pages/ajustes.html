@@ -2244,9 +2244,56 @@
   const KOMMO_SERVER = 'https://kommo-server-9f1243cbe450.herokuapp.com';
   const TEST_PROPOSTA_ID = '6abe66732fd100408e7295a4';
 
-  // Estado dinâmico — preenchido pela API ao carregar a página
-  let _pdvFields   = [];   // [{ key, type }]              ← de GET /proposta/:id/campos
-  let _kommoFields = [];   // [{ field_id (str), label, type }] ← de GET /kommo/campos
+  // Lista estática de fallback — usada quando a API retorna 401 ou falha
+  const _PDV_FIELDS_FALLBACK = [
+    { key: 'numeroOrcamento',                type: 'numeric' },
+    { key: 'numeroPedido',                   type: 'text'    },
+    { key: 'dataOrcamento',                  type: 'date'    },
+    { key: 'origemCliente',                  type: 'text'    },
+    { key: 'vendedorResponsavel',            type: 'text'    },
+    { key: 'cep',                            type: 'text'    },
+    { key: 'rua',                            type: 'text'    },
+    { key: 'numero',                         type: 'text'    },
+    { key: 'complemento',                    type: 'text'    },
+    { key: 'bairro',                         type: 'text'    },
+    { key: 'cidade',                         type: 'text'    },
+    { key: 'estado',                         type: 'text'    },
+    { key: 'cepObra',                        type: 'text'    },
+    { key: 'ruaObra',                        type: 'text'    },
+    { key: 'numeroObra',                     type: 'text'    },
+    { key: 'complementoObra',                type: 'text'    },
+    { key: 'bairroObra',                     type: 'text'    },
+    { key: 'cidadeObra',                     type: 'text'    },
+    { key: 'estadoObra',                     type: 'text'    },
+    { key: 'clientes[0].nome_razao_social',  type: 'text'    },
+    { key: 'clientes[0].cpfCnpj',           type: 'text'    },
+    { key: 'clientes[0].nomeContato',        type: 'text'    },
+    { key: 'clientes[0].telefoneCliente',    type: 'text'    },
+    { key: 'clientes[0].emailCliente',       type: 'text'    },
+    { key: 'clientes[0].funcaoCliente',      type: 'text'    },
+    { key: 'valorVenda',                     type: 'numeric' },
+    { key: 'valorNFProduto',                 type: 'numeric' },
+    { key: 'valorNFServico',                 type: 'numeric' },
+    { key: 'valorFatDireto',                 type: 'numeric' },
+    { key: 'desconto',                       type: 'numeric' },
+    { key: 'condicoesGerais',               type: 'text'    },
+    { key: 'condicaoPagamento',             type: 'text'    },
+    { key: 'prazosArea',                    type: 'text'    },
+    { key: 'prazoEntrega',                  type: 'text'    },
+    { key: 'parcelas[0].data',              type: 'date'    },
+    { key: 'parcelas[0].valor',             type: 'numeric' },
+    { key: 'prazoPrevisto',                 type: 'date'    },
+    { key: 'dataPedidoEnviadoCliente',      type: 'date'    },
+    { key: 'dataPedidoAssinado',            type: 'date'    },
+    { key: 'dataLiberacaoObra',             type: 'date'    },
+    { key: 'dataProjetoEnviado',            type: 'date'    },
+    { key: 'dataProjetoAssinado',           type: 'date'    },
+    { key: 'dataMedicaoRealizada',          type: 'date'    },
+  ];
+
+  // Estado dinâmico — preenchido pela API ou pelo fallback
+  let _pdvFields   = [];   // [{ key, type }]
+  let _kommoFields = [];   // [{ field_id (str), label, type }]
   let _mapData     = [];
 
   // Mapeamentos padrão: usa field_id como string para Kommo
@@ -2292,13 +2339,12 @@
 
     await Promise.all([
       fetch(`${KOMMO_SERVER}/proposta/${TEST_PROPOSTA_ID}/campos`)
-        .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d) _pdvFields = (d.campos || []).slice().sort((a,b) => a.key.localeCompare(b.key)); })
-        .catch(() => {}),
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(d => { _pdvFields = (d.campos || []).slice().sort((a,b) => a.key.localeCompare(b.key)); })
+        .catch(() => { _pdvFields = _PDV_FIELDS_FALLBACK.slice(); }),
       fetch(`${KOMMO_SERVER}/kommo/campos`)
-        .then(r => r.ok ? r.json() : null)
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(d => {
-          if (!d) return;
           const abas = d.campos_lead_por_aba || {};
           _kommoFields = [];
           for (const fields of Object.values(abas)) {
