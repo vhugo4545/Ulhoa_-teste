@@ -419,8 +419,43 @@ function adicionarTotalizadoresPorAmbienteComAgrupamento() {
       const _aprovada  = _solic.find(s => s.status === "aprovado");
       const _pendente  = _solic.find(s => s.status === "pendente");
 
+      const _fmtBRL = n => (n||0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       let _btnHtml = "";
-      if (!_isAdmin) {
+
+      if (_isAdmin) {
+        // Gestor: dropdown com solicitações pendentes ou status atual
+        if (_aprovada) {
+          const _dt = new Date(_aprovada.dataAprovacao).toLocaleString("pt-BR");
+          _btnHtml = `<div style="display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:6px 14px;margin-top:8px;font-size:12px;color:#166534;font-weight:600;">
+            <span class="material-icons-outlined" style="font-size:15px;">check_circle</span>
+            Aprovado por ${_aprovada.aprovador} · ${_dt}
+          </div>`;
+        } else if (_pendente) {
+          const _dt = new Date(_pendente.dataHora).toLocaleString("pt-BR");
+          _btnHtml = `
+            <div style="position:relative;display:inline-block;margin-top:8px;" id="_apmin_drop_wrap">
+              <button onclick="_apminToggleDrop()" style="display:inline-flex;align-items:center;gap:6px;background:#f59e0b;color:#fff;border:none;border-radius:10px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
+                <span class="material-icons-outlined" style="font-size:15px;">pending_actions</span>
+                Pendente · ${_dt}
+                <span class="material-icons-outlined" style="font-size:14px;">expand_more</span>
+              </button>
+              <div id="_apmin_drop" style="display:none;position:absolute;left:50%;transform:translateX(-50%);top:calc(100% + 6px);background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:16px;min-width:280px;z-index:1000;text-align:left;">
+                <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">👤 <strong>${_pendente.solicitante || "—"}</strong></div>
+                <div style="font-size:12px;color:#6b7280;margin-bottom:10px;">🕐 ${_dt}</div>
+                <div style="display:flex;gap:12px;font-size:13px;margin-bottom:12px;">
+                  <span>Final: <strong style="color:#dc2626;">${_fmtBRL(_pendente.valorFinal)}</strong></span>
+                  <span>Mín: <strong>${_fmtBRL(_pendente.valorMinimo)}</strong></span>
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <button onclick="_apminResolver('${_pendente._id}','aprovado')" style="flex:1;padding:8px 0;border:none;border-radius:8px;background:#16a34a;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">✓ Aprovar</button>
+                  <button onclick="_apminResolver('${_pendente._id}','negado')"  style="flex:1;padding:8px 0;border:none;border-radius:8px;background:#ef4444;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">✗ Negar</button>
+                </div>
+              </div>
+            </div>`;
+        }
+        // Se não há pendente nem aprovado, gestor não vê botão (só o badge vermelho)
+      } else {
+        // Usuário normal
         if (_aprovada) {
           const _dt = new Date(_aprovada.dataAprovacao).toLocaleString("pt-BR");
           _btnHtml = `<div style="display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:6px 14px;margin-top:8px;font-size:12px;color:#166534;font-weight:600;">
@@ -694,3 +729,46 @@ async function _solicitarAprovacaoMinimo(valorFinal, valorMinimo) {
     adicionarTotalizadoresPorAmbienteComAgrupamento();
   }
 }
+
+// ── Dropdown do gestor ────────────────────────────────────────────────────────
+window._apminToggleDrop = function() {
+  const d = document.getElementById("_apmin_drop");
+  if (!d) return;
+  const isOpen = d.style.display !== "none";
+  d.style.display = isOpen ? "none" : "block";
+  if (!isOpen) {
+    // Fecha ao clicar fora
+    setTimeout(() => {
+      document.addEventListener("click", function _close(e) {
+        const wrap = document.getElementById("_apmin_drop_wrap");
+        if (!wrap || !wrap.contains(e.target)) {
+          const dd = document.getElementById("_apmin_drop");
+          if (dd) dd.style.display = "none";
+          document.removeEventListener("click", _close);
+        }
+      });
+    }, 0);
+  }
+};
+
+window._apminResolver = async function(aprovacaoId, novoStatus) {
+  const token    = localStorage.getItem("accessToken") || "";
+  const aprovador = localStorage.getItem("usuarioNome") || "Gestor";
+
+  const resp = await fetch(`https://ulhoa-0a02024d350a.herokuapp.com/api/aprovacoes-minimo/${aprovacaoId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ status: novoStatus, aprovador })
+  }).catch(() => null);
+
+  if (!resp?.ok) { alert("Erro ao salvar decisão."); return; }
+  const doc = await resp.json();
+
+  window._solicitacoesAprovacaoMinimo = (window._solicitacoesAprovacaoMinimo || []).map(s =>
+    (s._id === aprovacaoId || s.id === aprovacaoId) ? { ...s, ...doc } : s
+  );
+
+  if (typeof adicionarTotalizadoresPorAmbienteComAgrupamento === "function") {
+    adicionarTotalizadoresPorAmbienteComAgrupamento();
+  }
+};
