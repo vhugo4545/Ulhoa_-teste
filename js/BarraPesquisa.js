@@ -229,11 +229,11 @@ async function carregarMapaUnidades() {
 window.carregarMapaUnidades = carregarMapaUnidades;
 
 function _mostrarUltimaAtualizacaoOmie() {
-  const btn = document.getElementById("btn-ultima-atualizacao");
+  const btn = document.getElementById("btn-omie-preco-atualizacao");
   if (!btn) return;
   const ts = window.CFgAPI?.obter()?.ultimaAtualizacaoOmie;
   if (ts) {
-    btn.textContent = "Última atualização: " + new Date(ts).toLocaleString("pt-BR");
+    btn.textContent = "⟳ Omie: " + new Date(ts).toLocaleString("pt-BR");
     btn.style.display = "";
   }
 }
