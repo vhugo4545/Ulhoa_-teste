@@ -680,8 +680,10 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
             Assinatura do contrato pelo cliente
             <span style="font-size:10px;color:#888;font-weight:400;">(igual p/ todos os itens)</span>
           </label>
-          <input type="date" name="dataAssinaturaContrato"
-            class="form-control form-control-sm">
+          <input type="date" name="dataPedidoAssinado"
+            class="form-control form-control-sm"
+            readonly style="background:#f3f3f3;"
+            value="${document.getElementById('dataPedidoAssinado')?.value || ''}">
         </div>
 
       </div>
@@ -909,6 +911,15 @@ function ativarRecalculoEmTodasTabelas() {
     adicionarTotalizadoresPorAmbienteComAgrupamento();
   });
 }
+
+// Propaga #dataPedidoAssinado para todos os grupos ao alterar o campo global
+document.addEventListener("change", function (e) {
+  if (e.target.id !== "dataPedidoAssinado") return;
+  const valor = e.target.value;
+  document.querySelectorAll('.tab-pane input[name="dataPedidoAssinado"]').forEach(input => {
+    input.value = valor;
+  });
+});
 
 
 
