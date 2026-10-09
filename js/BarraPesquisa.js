@@ -232,9 +232,64 @@ function _mostrarUltimaAtualizacaoOmie() {
   const btn = document.getElementById("btn-omie-preco-atualizacao");
   if (!btn) return;
   const ts = window.CFgAPI?.obter()?.ultimaAtualizacaoOmie;
-  if (ts) {
-    btn.textContent = "⟳ Omie: " + new Date(ts).toLocaleString("pt-BR");
-    btn.style.display = "";
+  if (!ts) return;
+
+  const tipoUsuario = localStorage.getItem("usuarioTipo") || "usuario";
+  const isGestor = ["admin", "gestor"].includes(tipoUsuario);
+  const aprovado = !!window.propostaAtual?.aprovadoPeloGestor;
+
+  const cursorSel = isGestor ? "pointer" : "default";
+  btn.innerHTML =
+    `<span>⟳ Omie: ${new Date(ts).toLocaleString("pt-BR")}</span>` +
+    `<span style="margin-left:10px;display:inline-flex;border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.25);">` +
+      `<span id="badge-nao-aprovado" data-val="false" style="` +
+        `padding:2px 9px;font:600 11px Inter,Arial;user-select:none;cursor:${cursorSel};` +
+        `background:${!aprovado ? "rgba(255,255,255,.25)" : "transparent"};` +
+        `color:${!aprovado ? "#fff" : "rgba(255,255,255,.45)"};` +
+        `border-right:1px solid rgba(255,255,255,.2);">` +
+        `${!aprovado ? "✓" : "○"} não aprovado` +
+      `</span>` +
+      `<span id="badge-aprovado" data-val="true" style="` +
+        `padding:2px 9px;font:600 11px Inter,Arial;user-select:none;cursor:${cursorSel};` +
+        `background:${aprovado ? "rgba(255,255,255,.25)" : "transparent"};` +
+        `color:${aprovado ? "#fff" : "rgba(255,255,255,.45)"};">` +
+        `${aprovado ? "✓" : "○"} aprovado pelo gestor` +
+      `</span>` +
+    `</span>`;
+
+  btn.style.display = "";
+  btn.style.pointerEvents = "auto";
+
+  if (isGestor) {
+    ["badge-nao-aprovado", "badge-aprovado"].forEach(id => {
+      document.getElementById(id)?.addEventListener("click", async e => {
+        e.stopPropagation();
+        const novoValor = e.currentTarget.dataset.val === "true";
+        if (novoValor === !!window.propostaAtual?.aprovadoPeloGestor) return;
+        await _toggleAprovadoGestor(novoValor);
+      });
+    });
+  }
+}
+
+async function _toggleAprovadoGestor(novoValor) {
+  const id = new URLSearchParams(location.search).get("id") || window.propostaAtual?._id;
+  if (!id) return;
+  try {
+    const res = await fetch(
+      `https://ulhoa-0a02024d350a.herokuapp.com/api/propostas/${id}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aprovadoPeloGestor: novoValor })
+      }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (window.propostaAtual) window.propostaAtual.aprovadoPeloGestor = novoValor;
+    _mostrarUltimaAtualizacaoOmie();
+  } catch (err) {
+    console.error("Erro ao salvar aprovadoPeloGestor:", err);
+    alert("Erro ao salvar. Tente novamente.");
   }
 }
 
