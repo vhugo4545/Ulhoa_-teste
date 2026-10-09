@@ -2239,123 +2239,82 @@
   }
 
   // ══════════════════════════════════════════════════════════════
-  // MAPEAMENTO DE CAMPOS PDV ↔ KOMMO
+  // MAPEAMENTO DE CAMPOS PDV ↔ KOMMO — carregamento dinâmico
   // ══════════════════════════════════════════════════════════════
   const KOMMO_SERVER = 'https://kommo-server-9f1243cbe450.herokuapp.com';
   const TEST_PROPOSTA_ID = '6abe66732fd100408e7295a4';
 
-  const PDV_FIELDS_LIST = [
-    // Endereço Principal
-    { key: 'rua',                          label: 'Rua',                          group: 'Endereço Principal',  type: 'text'    },
-    { key: 'numero',                       label: 'Número',                       group: 'Endereço Principal',  type: 'text'    },
-    { key: 'complemento',                  label: 'Complemento',                  group: 'Endereço Principal',  type: 'text'    },
-    { key: 'bairro',                       label: 'Bairro',                       group: 'Endereço Principal',  type: 'text'    },
-    { key: 'cidade',                       label: 'Cidade',                       group: 'Endereço Principal',  type: 'text'    },
-    { key: 'cep',                          label: 'CEP',                          group: 'Endereço Principal',  type: 'text'    },
-    { key: 'estado',                       label: 'Estado',                       group: 'Endereço Principal',  type: 'text'    },
-    // Endereço da Obra
-    { key: 'ruaObra',                      label: 'Rua (Obra)',                   group: 'Endereço da Obra',    type: 'text'    },
-    { key: 'numeroObra',                   label: 'Número (Obra)',                group: 'Endereço da Obra',    type: 'text'    },
-    { key: 'complementoObra',              label: 'Complemento (Obra)',           group: 'Endereço da Obra',    type: 'text'    },
-    { key: 'bairroObra',                   label: 'Bairro (Obra)',                group: 'Endereço da Obra',    type: 'text'    },
-    { key: 'cidadeObra',                   label: 'Cidade (Obra)',                group: 'Endereço da Obra',    type: 'text'    },
-    { key: 'cepObra',                      label: 'CEP (Obra)',                   group: 'Endereço da Obra',    type: 'text'    },
-    { key: 'estadoObra',                   label: 'Estado (Obra)',                group: 'Endereço da Obra',    type: 'text'    },
-    // Identificação
-    { key: 'numeroOrcamento',              label: 'Nº Orçamento',                 group: 'Identificação',       type: 'numeric' },
-    { key: 'numeroPedido',                 label: 'Nº Pedido',                    group: 'Identificação',       type: 'text'    },
-    { key: 'vendedorResponsavel',          label: 'Vendedor Responsável',         group: 'Identificação',       type: 'text'    },
-    { key: 'origemCliente',                label: 'Origem do Cliente',            group: 'Identificação',       type: 'text'    },
-    { key: 'clientes[0].nome_razao_social',label: 'Nome / Razão Social',          group: 'Identificação',       type: 'text'    },
-    // Financeiro
-    { key: 'valorVenda',                   label: 'Valor de Venda',               group: 'Financeiro',          type: 'numeric' },
-    { key: 'valorNFProduto',               label: 'Valor NF Produto',             group: 'Financeiro',          type: 'numeric' },
-    { key: 'valorNFServico',               label: 'Valor NF Serviço',             group: 'Financeiro',          type: 'numeric' },
-    { key: 'valorFatDireto',               label: 'Valor Fat. Direto',            group: 'Financeiro',          type: 'numeric' },
-    { key: 'desconto',                     label: 'Desconto',                     group: 'Financeiro',          type: 'numeric' },
-    // Condições
-    { key: 'condicoesGerais',              label: 'Condições Gerais',             group: 'Condições',           type: 'text'    },
-    { key: 'parcelas[0].data',             label: 'Parcela 1 — Data',             group: 'Condições',           type: 'date'    },
-    // Datas
-    { key: 'dataOrcamento',                label: 'Data do Orçamento',            group: 'Datas',               type: 'date'    },
-    { key: 'prazoPrevisto',                label: 'Prazo Previsto',               group: 'Datas',               type: 'date'    },
-    { key: 'dataPedidoEnviadoCliente',     label: 'Pedido Enviado ao Cliente',    group: 'Datas',               type: 'date'    },
-    { key: 'dataPedidoAssinado',           label: 'Pedido Assinado (ClickSign)',  group: 'Datas',               type: 'date', locked: true },
-    { key: 'dataMedicaoRealizada',         label: 'Medição Realizada',            group: 'Datas',               type: 'date'    },
-    { key: 'dataLiberacaoObra',            label: 'Liberação da Obra',            group: 'Datas',               type: 'date'    },
-    { key: 'dataProjetoEnviado',           label: 'Projeto Enviado',              group: 'Datas',               type: 'date'    },
-    { key: 'dataProjetoAssinado',          label: 'Projeto Assinado',             group: 'Datas',               type: 'date'    },
-  ];
+  // Estado dinâmico — preenchido pela API ao carregar a página
+  let _pdvFields   = [];   // [{ key, type }]              ← de GET /proposta/:id/campos
+  let _kommoFields = [];   // [{ field_id (str), label, type }] ← de GET /kommo/campos
+  let _mapData     = [];
 
-  const KOMMO_FIELDS_LIST = [
-    { key: 'kommo_rua',                  field_id: 1725250,     label: 'Rua (Obra)',              group: 'Endereço Obra',    type: 'text'    },
-    { key: 'kommo_numero',               field_id: 1725254,     label: 'Número (Obra)',           group: 'Endereço Obra',    type: 'text'    },
-    { key: 'kommo_complemento',          field_id: 1725258,     label: 'Complemento (Obra)',      group: 'Endereço Obra',    type: 'text'    },
-    { key: 'kommo_bairro',               field_id: 1725256,     label: 'Bairro (Obra)',           group: 'Endereço Obra',    type: 'text'    },
-    { key: 'kommo_cidade',               field_id: 1725260,     label: 'Cidade (Obra)',           group: 'Endereço Obra',    type: 'text'    },
-    { key: 'kommo_rua_cobranca',         field_id: 1790958,     label: 'Rua (Cobrança)',          group: 'Endereço Cobrança',type: 'text'    },
-    { key: 'kommo_numero_cobranca',      field_id: 1790960,     label: 'Número (Cobrança)',       group: 'Endereço Cobrança',type: 'text'    },
-    { key: 'kommo_complemento_cobranca', field_id: 1790962,     label: 'Complemento (Cobrança)', group: 'Endereço Cobrança',type: 'text'    },
-    { key: 'kommo_bairro_cobranca',      field_id: 1790964,     label: 'Bairro (Cobrança)',       group: 'Endereço Cobrança',type: 'text'    },
-    { key: 'kommo_cidade_cobranca',      field_id: 1790966,     label: 'Cidade (Cobrança)',       group: 'Endereço Cobrança',type: 'text'    },
-    { key: 'kommo_valor_nf_produto',     field_id: 1790646,     label: 'Valor NF Produto',        group: 'Financeiro',       type: 'numeric' },
-    { key: 'kommo_valor_nf_servico',     field_id: 1790644,     label: 'Valor NF Serviço',        group: 'Financeiro',       type: 'numeric' },
-    { key: 'kommo_valor_fat_direto',     field_id: 1790986,     label: 'Valor Fat. Direto',       group: 'Financeiro',       type: 'numeric' },
-    { key: 'kommo_valor_venda',          field_id: '__value__', label: 'Valor de Venda (Lead)',   group: 'Financeiro',       type: 'numeric' },
-    { key: 'kommo_desconto',             field_id: 1802386,     label: 'Desconto',                group: 'Financeiro',       type: 'numeric' },
-    { key: 'kommo_numero_orcamento',     field_id: 1710738,     label: 'Nº Orçamento',            group: 'Identificação',    type: 'numeric' },
-    { key: 'kommo_numero_pedido',        field_id: 1716834,     label: 'Nº Pedido',               group: 'Identificação',    type: 'text'    },
-    { key: 'kommo_nome_razao_social',    field_id: 1791998,     label: 'Nome / Razão Social',     group: 'Identificação',    type: 'text'    },
-    { key: 'kommo_id_pdv',               field_id: 1793228,     label: 'ID PDV',                  group: 'Identificação',    type: 'text'    },
-    { key: 'kommo_origem',               field_id: 1716838,     label: 'Origem do Cliente',       group: 'Identificação',    type: 'text'    },
-    { key: 'kommo_vencimento_entrada',   field_id: 1723710,     label: 'Vencimento Entrada',      group: 'Datas',            type: 'date'    },
-    { key: 'kommo_contrato_enviado',     field_id: 1793090,     label: 'Contrato Enviado',        group: 'Datas',            type: 'date'    },
-    { key: 'kommo_contrato_assinado',    field_id: 1793088,     label: 'Assinado (ClickSign) ⚠️', group: 'Datas',            type: 'date', locked: true },
-    { key: 'kommo_projeto_enviado',      field_id: 1793092,     label: 'Projeto Enviado',         group: 'Datas',            type: 'date'    },
-    { key: 'kommo_obra_liberada',        field_id: 1793094,     label: 'Obra Liberada',           group: 'Datas',            type: 'date'    },
-    { key: 'kommo_medicao_realizada',    field_id: 1793096,     label: 'Medição Realizada',       group: 'Datas',            type: 'date'    },
-    { key: 'kommo_assinatura_projeto',   field_id: 1790990,     label: 'Assinatura Projeto',      group: 'Datas',            type: 'date'    },
-    { key: 'kommo_data_prevista',        field_id: 1790862,     label: 'Data Prevista',           group: 'Datas',            type: 'date'    },
-    { key: 'kommo_observacao',           field_id: 1790968,     label: 'Observações',             group: 'Outros',           type: 'text'    },
-  ];
-
+  // Mapeamentos padrão: usa field_id como string para Kommo
   const MAP_DEFAULTS = [
-    { pdv: 'rua',                          kommo: 'kommo_rua'                  },
-    { pdv: 'numero',                       kommo: 'kommo_numero'               },
-    { pdv: 'complemento',                  kommo: 'kommo_complemento'          },
-    { pdv: 'bairro',                       kommo: 'kommo_bairro'               },
-    { pdv: 'cidade',                       kommo: 'kommo_cidade'               },
-    { pdv: 'ruaObra',                      kommo: 'kommo_rua_cobranca'         },
-    { pdv: 'numeroObra',                   kommo: 'kommo_numero_cobranca'      },
-    { pdv: 'complementoObra',              kommo: 'kommo_complemento_cobranca' },
-    { pdv: 'bairroObra',                   kommo: 'kommo_bairro_cobranca'      },
-    { pdv: 'cidadeObra',                   kommo: 'kommo_cidade_cobranca'      },
-    { pdv: 'valorNFProduto',               kommo: 'kommo_valor_nf_produto'     },
-    { pdv: 'valorNFServico',               kommo: 'kommo_valor_nf_servico'     },
-    { pdv: 'valorFatDireto',               kommo: 'kommo_valor_fat_direto'     },
-    { pdv: 'valorVenda',                   kommo: 'kommo_valor_venda'          },
-    { pdv: 'desconto',                     kommo: 'kommo_desconto'             },
-    { pdv: 'numeroOrcamento',              kommo: 'kommo_numero_orcamento'     },
-    { pdv: 'numeroPedido',                 kommo: 'kommo_numero_pedido'        },
-    { pdv: 'clientes[0].nome_razao_social',kommo: 'kommo_nome_razao_social'    },
-    { pdv: 'origemCliente',                kommo: 'kommo_origem'               },
-    { pdv: 'condicoesGerais',              kommo: 'kommo_observacao'           },
-    { pdv: 'prazoPrevisto',                kommo: 'kommo_data_prevista'        },
-    { pdv: 'parcelas[0].data',             kommo: 'kommo_vencimento_entrada'   },
-    { pdv: 'dataPedidoEnviadoCliente',     kommo: 'kommo_contrato_enviado'     },
-    { pdv: 'dataMedicaoRealizada',         kommo: 'kommo_medicao_realizada'    },
-    { pdv: 'dataLiberacaoObra',            kommo: 'kommo_obra_liberada'        },
-    { pdv: 'dataProjetoEnviado',           kommo: 'kommo_projeto_enviado'      },
-    { pdv: 'dataProjetoAssinado',          kommo: 'kommo_assinatura_projeto'   },
+    { pdv: 'rua',                           kommo: '1725250'   },
+    { pdv: 'numero',                        kommo: '1725254'   },
+    { pdv: 'complemento',                   kommo: '1725258'   },
+    { pdv: 'bairro',                        kommo: '1725256'   },
+    { pdv: 'cidade',                        kommo: '1725260'   },
+    { pdv: 'ruaObra',                       kommo: '1790958'   },
+    { pdv: 'numeroObra',                    kommo: '1790960'   },
+    { pdv: 'complementoObra',               kommo: '1790962'   },
+    { pdv: 'bairroObra',                    kommo: '1790964'   },
+    { pdv: 'cidadeObra',                    kommo: '1790966'   },
+    { pdv: 'valorNFProduto',                kommo: '1790646'   },
+    { pdv: 'valorNFServico',                kommo: '1790644'   },
+    { pdv: 'valorFatDireto',                kommo: '1790986'   },
+    { pdv: 'valorVenda',                    kommo: '__value__' },
+    { pdv: 'desconto',                      kommo: '1802386'   },
+    { pdv: 'numeroOrcamento',               kommo: '1710738'   },
+    { pdv: 'numeroPedido',                  kommo: '1716834'   },
+    { pdv: 'clientes[0].nome_razao_social', kommo: '1791998'   },
+    { pdv: 'origemCliente',                 kommo: '1716838'   },
+    { pdv: 'condicoesGerais',               kommo: '1790968'   },
+    { pdv: 'prazoPrevisto',                 kommo: '1790862'   },
+    { pdv: 'parcelas[0].data',              kommo: '1723710'   },
+    { pdv: 'dataPedidoEnviadoCliente',      kommo: '1793090'   },
+    { pdv: 'dataMedicaoRealizada',          kommo: '1793096'   },
+    { pdv: 'dataLiberacaoObra',             kommo: '1793094'   },
+    { pdv: 'dataProjetoEnviado',            kommo: '1793092'   },
+    { pdv: 'dataProjetoAssinado',           kommo: '1790990'   },
   ];
 
-  let _mapData = [];
+  async function mapInit() {
+    const tbody = document.getElementById('map-tbody');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:#64748b;font-size:12px;"><span class="test-spin"></span> Carregando campos da API…</td></tr>`;
 
-  function mapLoad() {
+    await Promise.all([
+      fetch(`${KOMMO_SERVER}/proposta/${TEST_PROPOSTA_ID}/campos`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) _pdvFields = (d.campos || []).slice().sort((a,b) => a.key.localeCompare(b.key)); })
+        .catch(() => {}),
+      fetch(`${KOMMO_SERVER}/kommo/campos`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (!d) return;
+          const abas = d.campos_lead_por_aba || {};
+          _kommoFields = [];
+          for (const fields of Object.values(abas)) {
+            for (const f of fields) {
+              _kommoFields.push({
+                field_id: String(f.field_id),
+                label: f.field_name || String(f.field_id),
+                type: f.field_type || 'text'
+              });
+            }
+          }
+          _kommoFields.sort((a, b) => a.label.localeCompare(b.label));
+          _kommoFields.push({ field_id: '__value__', label: 'Valor de Venda (Lead)', type: 'numeric' });
+        })
+        .catch(() => {})
+    ]);
+
     try {
-      const saved = localStorage.getItem('field-mappings-v3');
+      const saved = localStorage.getItem('field-mappings-v4');
       _mapData = saved ? JSON.parse(saved) : MAP_DEFAULTS.map(m => ({...m}));
     } catch(_) { _mapData = MAP_DEFAULTS.map(m => ({...m})); }
+
     mapRender();
   }
 
@@ -2371,7 +2330,7 @@
 
   function mapSave() {
     mapSyncFromDOM();
-    try { localStorage.setItem('field-mappings-v3', JSON.stringify(_mapData)); } catch(_) {}
+    try { localStorage.setItem('field-mappings-v4', JSON.stringify(_mapData)); } catch(_) {}
     const st = document.getElementById('map-save-status');
     st.textContent = '✓ Salvo';
     st.className = 'map-status ok';
@@ -2381,7 +2340,7 @@
 
   function mapRestoreDefaults() {
     _mapData = MAP_DEFAULTS.map(m => ({...m}));
-    try { localStorage.setItem('field-mappings-v3', JSON.stringify(_mapData)); } catch(_) {}
+    try { localStorage.setItem('field-mappings-v4', JSON.stringify(_mapData)); } catch(_) {}
     mapRender();
     const st = document.getElementById('map-save-status');
     st.textContent = '✓ Padrões restaurados';
@@ -2406,47 +2365,34 @@
   function mapRowChange(i) {
     const row = document.querySelector(`tr[data-map-idx="${i}"]`);
     if (!row) return;
-    const kommoKey = row.querySelector('.map-sel-kommo').value;
-    const kf = KOMMO_FIELDS_LIST.find(f => f.key === kommoKey);
+    const kommoId = row.querySelector('.map-sel-kommo').value;
+    const kf = _kommoFields.find(f => f.field_id === kommoId);
     row.cells[4].innerHTML = kf ? `<code style="font-size:10px;color:var(--text-muted)">${kf.field_id}</code>` : '';
     row.cells[5].innerHTML = kf ? mapTypeBadge(kf.type) : '';
     document.getElementById('map-count-badge').textContent = `${_mapData.length + 1} campos`;
   }
 
   function mapTypeBadge(type) {
-    if (type === 'date')    return '<span class="map-badge date">Data</span>';
-    if (type === 'numeric') return '<span class="map-badge num">Número</span>';
+    const t = (type || '').toLowerCase();
+    if (t === 'date')    return '<span class="map-badge date">Data</span>';
+    if (t === 'numeric' || t === 'price') return '<span class="map-badge num">Número</span>';
     return '<span class="map-badge">Texto</span>';
   }
 
   function mapBuildPdvOptions(sel) {
     let html = '<option value="">— Campo PDV —</option>';
-    let lastGroup = '';
-    PDV_FIELDS_LIST.forEach(f => {
-      if (f.group !== lastGroup) {
-        if (lastGroup) html += '</optgroup>';
-        html += `<optgroup label="${f.group}">`;
-        lastGroup = f.group;
-      }
-      const lock = f.locked ? ' 🔒' : '';
-      html += `<option value="${f.key}"${f.key===sel?' selected':''}>${f.label}${lock}</option>`;
+    _pdvFields.forEach(f => {
+      html += `<option value="${f.key}"${f.key===sel?' selected':''}>${f.key}</option>`;
     });
-    if (lastGroup) html += '</optgroup>';
     return html;
   }
 
   function mapBuildKommoOptions(sel) {
     let html = '<option value="">— Campo Kommo —</option>';
-    let lastGroup = '';
-    KOMMO_FIELDS_LIST.forEach(f => {
-      if (f.group !== lastGroup) {
-        if (lastGroup) html += '</optgroup>';
-        html += `<optgroup label="${f.group}">`;
-        lastGroup = f.group;
-      }
-      html += `<option value="${f.key}"${f.key===sel?' selected':''}>${f.label}</option>`;
+    _kommoFields.forEach(f => {
+      const selected = f.field_id === sel ? ' selected' : '';
+      html += `<option value="${f.field_id}"${selected}>${f.label} (${f.field_id})</option>`;
     });
-    if (lastGroup) html += '</optgroup>';
     return html;
   }
 
@@ -2454,8 +2400,8 @@
     const tbody = document.getElementById('map-tbody');
     if (!tbody) return;
     tbody.innerHTML = _mapData.map((m, i) => {
-      const kf = KOMMO_FIELDS_LIST.find(f => f.key === m.kommo);
-      const fid = kf ? kf.field_id : '';
+      const kf = _kommoFields.find(f => f.field_id === m.kommo);
+      const fid = kf ? kf.field_id : (m.kommo || '');
       return `<tr data-map-idx="${i}">
         <td style="color:var(--text-muted);font-size:11px;">${i+1}</td>
         <td><select class="map-select map-sel-pdv" onchange="mapRowChange(${i})">${mapBuildPdvOptions(m.pdv)}</select></td>
@@ -2469,7 +2415,7 @@
     document.getElementById('map-count-badge').textContent = `${_mapData.length} campos`;
   }
 
-  mapLoad();
+  mapInit();
 
   // ══════════════════════════════════════════════════════════════
   // TESTE DE INTEGRAÇÃO
