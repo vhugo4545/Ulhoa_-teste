@@ -135,6 +135,9 @@ function abrirPopupIncluirCliente() {
 
   form.reset();
   _ultimoDocConsultado = "";
+  _clienteEditandoCodigo = null;
+  _limparBannerClienteExistente();
+  _atualizarBotoesModalCliente();
   const avisoAnterior = document.getElementById("_cnpjcpf_aviso");
   if (avisoAnterior) { avisoAnterior.textContent = ""; }
   const campoDoc = document.getElementById("popupCliente_cnpjcpf");
@@ -302,82 +305,173 @@ async function enviarClienteParaAPI() {
     ...(tagsSelecionadas.length ? { tags: tagsSelecionadas } : {})
   };
 
-  console.log("➡️ Enviando cliente para o servidor:", cliente);
-
-  // Se você tiver loading global, pode descomentar:
-  // if (typeof mostrarCarregando === "function") mostrarCarregando();
+  console.log("➡️ Enviando cliente para o servidor:", cliente, "| modo edição:", _clienteEditandoCodigo);
 
   try {
-    const resposta = await fetch("https://utils-b488312867a6.herokuapp.com/omie/clientes/incluir", {
-      // ajuste a URL se o server estiver em outro host (ex: Heroku)
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(cliente)
-    });
+    let codigoOmie, msgSucesso;
 
-    const resultado = await resposta.json().catch(() => null);
-    console.log("📨 Resposta do servidor:", resultado);
+    if (_clienteEditandoCodigo) {
+      // ── Modo edição: atualiza cliente na Omie via PDV server ──────────────
+      const resposta = await fetch(
+        `https://ulhoa-0a02024d350a.herokuapp.com/clientes/${_clienteEditandoCodigo}`,
+        { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cliente) }
+      );
+      const resultado = await resposta.json().catch(() => null);
+      console.log("📨 Resposta atualização:", resultado);
 
-    if (!resultado || !resultado.sucesso) {
-      const detalhe =
-        resultado?.omieErro?.faultstring ||
-        resultado?.mensagem ||
-        "Erro ao incluir cliente na Omie.";
-      console.error("❌ Erro ao incluir cliente:", detalhe);
-      if (typeof mostrarPopupCustomizado === "function") {
-        mostrarPopupCustomizado("❌ Erro ao incluir cliente", detalhe, "danger");
-      } else {
-        alert(detalhe);
+      if (!resposta.ok) {
+        const detalhe = resultado?.faultstring || resultado?.message || `HTTP ${resposta.status}`;
+        console.error("❌ Erro ao atualizar cliente:", detalhe);
+        if (typeof mostrarPopupCustomizado === "function") {
+          mostrarPopupCustomizado("❌ Erro ao atualizar cliente", detalhe, "danger");
+        } else { alert(detalhe); }
+        return;
       }
-      return;
-    }
 
-    const codigoOmie = resultado?.cliente?.codigo_cliente_omie || null;
-    console.log("✅ Cliente incluído com sucesso na Omie! Código:", codigoOmie);
+      codigoOmie = _clienteEditandoCodigo;
+      console.log("✅ Cliente atualizado na Omie! Código:", codigoOmie);
+      msgSucesso = `Cliente <b>${razao_social}</b> atualizado com sucesso.`;
+
+    } else {
+      // ── Modo criação: inclui novo cliente ─────────────────────────────────
+      const resposta = await fetch("https://utils-b488312867a6.herokuapp.com/omie/clientes/incluir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cliente)
+      });
+      const resultado = await resposta.json().catch(() => null);
+      console.log("📨 Resposta do servidor:", resultado);
+
+      if (!resultado || !resultado.sucesso) {
+        const detalhe = resultado?.omieErro?.faultstring || resultado?.mensagem || "Erro ao incluir cliente na Omie.";
+        console.error("❌ Erro ao incluir cliente:", detalhe);
+        if (typeof mostrarPopupCustomizado === "function") {
+          mostrarPopupCustomizado("❌ Erro ao incluir cliente", detalhe, "danger");
+        } else { alert(detalhe); }
+        return;
+      }
+
+      codigoOmie = resultado?.cliente?.codigo_cliente_omie || null;
+      console.log("✅ Cliente incluído com sucesso na Omie! Código:", codigoOmie);
+      msgSucesso = `Cliente <b>${razao_social}</b> cadastrado com sucesso e disponível para seleção.`;
+    }
 
     // Fecha modal
     const modalEl = document.getElementById("popupClienteModal");
-    if (modalEl) {
-      const instancia = bootstrap.Modal.getInstance(modalEl);
-      instancia?.hide();
-    }
+    if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
 
-    // Preenche o formulário principal (ajuste os seletores conforme seu layout)
     preencherCamposCliente({
       nome_razao_social: razao_social,
-      codigoOmie: codigoOmie,
+      codigoOmie,
       cpfCnpj: cnpj_cpf,
       nome_contato: nome_fantasia,
       funcao: "",
       telefone: ""
     });
 
-    const msgSucesso = `Cliente <b>${razao_social} foi cadastrado com sucesso e está disponível para seleção."}`;
     if (typeof mostrarPopupCustomizado === "function") {
-      mostrarPopupCustomizado("✅ Cliente incluído com sucesso!", msgSucesso, "success");
+      mostrarPopupCustomizado("✅ Sucesso!", msgSucesso, "success");
     } else {
-      alert("Cliente incluído com sucesso!");
+      alert(msgSucesso.replace(/<[^>]+>/g, ""));
     }
 
-    // if (typeof ocultarCarregando === "function") ocultarCarregando();
     return codigoOmie;
   } catch (err) {
-    console.error("❌ Erro inesperado ao incluir cliente:", err);
+    console.error("❌ Erro inesperado:", err);
     if (typeof mostrarPopupCustomizado === "function") {
-      mostrarPopupCustomizado(
-        "❌ Erro ao incluir cliente",
-        "Erro de comunicação com o servidor.",
-        "danger"
-      );
-    } else {
-      alert("Erro de comunicação com o servidor.");
-    }
-    // if (typeof ocultarCarregando === "function") ocultarCarregando();
-    return;
+      mostrarPopupCustomizado("❌ Erro", "Erro de comunicação com o servidor.", "danger");
+    } else { alert("Erro de comunicação com o servidor."); }
   }
 }
 
 let _ultimoDocConsultado = "";
+let _clienteEditandoCodigo = null; // null = criar, código Omie = editar
+
+// ── Preenche modal com dados do cliente existente ──────────────────────────
+async function preencherModalComClienteExistente(codigoOmie, dadosBasicos) {
+  _clienteEditandoCodigo = codigoOmie;
+
+  let cliente = dadosBasicos;
+  try {
+    const resp = await fetch(`https://ulhoa-0a02024d350a.herokuapp.com/clientes/${codigoOmie}`);
+    if (resp.ok) {
+      const d = await resp.json();
+      cliente = d.clientes_cadastro_resposta || d.omieData || d || dadosBasicos;
+    }
+  } catch (_) {}
+
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
+  set('popupCliente_cnpjcpf', aplicarMascaraCnpjCpf(cliente.cnpj_cpf || ''));
+  set('popupCliente_razao',   cliente.razao_social   || '');
+  set('popupCliente_fantasia', cliente.nome_fantasia || '');
+  set('popupCliente_email',   cliente.email          || '');
+  const endNum = cliente.endereco_numero ? `, ${cliente.endereco_numero}` : '';
+  set('popupCliente_endereco', (cliente.endereco || '') + endNum);
+  set('popupCliente_bairro',  cliente.bairro  || '');
+  set('popupCliente_cidade',  cliente.cidade  || '');
+  set('popupCliente_estado',  cliente.estado  || '');
+  set('popupCliente_cep',     cliente.cep     || '');
+  set('popupCliente_contato', cliente.contato || '');
+  const ddd = cliente.telefone1_ddd || '';
+  const tel = cliente.telefone1_numero || '';
+  set('popupCliente_telefone1_numero', ddd ? `(${ddd}) ${tel}` : tel);
+  set('popupCliente_inscricao_municipal', cliente.inscricao_municipal || '');
+  set('popupCliente_inscricao_estadual',  cliente.inscricao_estadual  || '');
+  set('popupCliente_chave_pix',  cliente.cChavePix  || '');
+  set('popupCliente_observacao', cliente.observacao || '');
+
+  const tagsSalvas = (cliente.tags || []).map(t => t.tag || t);
+  document.querySelectorAll('#popupCliente_tags_container input[type=checkbox]').forEach(cb => {
+    cb.checked = tagsSalvas.includes(cb.value);
+  });
+
+  _mostrarBannerClienteExistente(cliente.razao_social || cliente.nome_fantasia || 'Cliente');
+  _atualizarBotoesModalCliente();
+}
+
+function _mostrarBannerClienteExistente(nome) {
+  let banner = document.getElementById('_banner_cliente_existente');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = '_banner_cliente_existente';
+    const body = document.getElementById('popupCliente_form')?.parentElement;
+    if (body) body.insertBefore(banner, body.firstChild);
+  }
+  banner.style.cssText = 'padding:10px 16px;background:#fef3c7;border-bottom:3px solid #fde68a;font-family:Poppins,sans-serif;font-size:12px;color:#92400e;display:flex;align-items:center;gap:8px;margin:-28px -28px 20px -28px;';
+  banner.innerHTML = `<span style="font-size:15px;">⚠️</span> <span>Cliente <strong>${nome}</strong> já cadastrado — campos preenchidos. Edite e clique em <strong>Atualizar Cliente</strong>, ou clique em <strong>Incluir no Orçamento</strong> sem alterar.</span>`;
+}
+
+function _limparBannerClienteExistente() {
+  document.getElementById('_banner_cliente_existente')?.remove();
+}
+
+function _atualizarBotoesModalCliente() {
+  const footer = document.querySelector('#popupClienteModal .modal-footer');
+  if (!footer) return;
+  if (_clienteEditandoCodigo) {
+    footer.innerHTML = `
+      <button class="btn btn-secondary" onclick="confirmarFecharModalCliente()" style="border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;">Cancelar</button>
+      <button class="btn" onclick="_incluirClienteNoOrcamento()" style="border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;background:#e2e8f0;border:none;color:#475569;padding:10px 18px;">Incluir no Orçamento</button>
+      <button class="btn btn-primary" onclick="enviarClienteParaAPI()" style="border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;background:#0f172a;border:none;padding:10px 24px;">Atualizar Cliente</button>`;
+  } else {
+    footer.innerHTML = `
+      <button class="btn btn-secondary" onclick="confirmarFecharModalCliente()" style="border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;">Cancelar</button>
+      <button class="btn btn-primary" onclick="enviarClienteParaAPI()" style="border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;background:#475569;border:none;padding:10px 24px;">Salvar Cliente</button>`;
+  }
+}
+
+function _incluirClienteNoOrcamento() {
+  preencherCamposCliente({
+    nome_razao_social: document.getElementById('popupCliente_razao')?.value || '',
+    codigoOmie:        _clienteEditandoCodigo,
+    cpfCnpj:           limparNumero(document.getElementById('popupCliente_cnpjcpf')?.value || ''),
+    nome_contato:      document.getElementById('popupCliente_fantasia')?.value || '',
+    funcao:            '',
+    telefone:          document.getElementById('popupCliente_telefone1_numero')?.value || ''
+  });
+  const modalEl = document.getElementById('popupClienteModal');
+  if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
+}
 
 // Máscara visual ao digitar
 document.addEventListener("input", function (e) {
@@ -432,42 +526,7 @@ document.addEventListener("input", async function (e) {
     if (data.encontrado && data.clientes?.length > 0) {
       aviso.textContent = "";
       const cliente = data.clientes[0];
-      const nome = cliente.razao_social || cliente.nome_fantasia || "cliente";
-
-      const acao = await new Promise(resolve => {
-        const ov = document.createElement("div");
-        ov.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999999;display:flex;align-items:center;justify-content:center;font-family:'Poppins',sans-serif;";
-        ov.innerHTML = `
-          <div style="background:#fff;border-radius:14px;padding:28px;width:min(420px,92vw);box-shadow:0 16px 48px rgba(0,0,0,.25);">
-            <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:8px;">Cliente já cadastrado</div>
-            <div style="font-size:13px;color:#64748b;margin-bottom:6px;">Este CPF/CNPJ já pertence a:</div>
-            <div style="font-size:14px;font-weight:600;color:#0f172a;background:#f1f5f9;border-radius:8px;padding:10px 14px;margin-bottom:20px;">${nome}</div>
-            <div style="font-size:13px;color:#64748b;margin-bottom:24px;">O que deseja fazer?</div>
-            <div style="display:flex;gap:10px;justify-content:flex-end;">
-              <button id="_doc_incluir" style="padding:9px 20px;border:none;border-radius:8px;background:#475569;color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">Incluir no orçamento</button>
-            </div>
-          </div>`;
-        document.body.appendChild(ov);
-        document.getElementById("_doc_incluir").onclick  = () => { document.body.removeChild(ov); resolve("incluir"); };
-      });
-
-      if (acao === "incluir") {
-        // Fecha o modal
-        const modalEl = document.getElementById("popupClienteModal");
-        if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
-
-        // Preenche o formulário principal
-        const ddd = cliente.telefone1_ddd || "";
-        const tel = cliente.telefone1_numero || "";
-        preencherCamposCliente({
-          nome_razao_social: cliente.razao_social || cliente.nome_fantasia || "",
-          codigoOmie: cliente.codigo_cliente_omie || "",
-          cpfCnpj: cliente.cnpj_cpf || cnpj_cpf,
-          nome_contato: cliente.nome_fantasia || "",
-          funcao: "",
-          telefone: ddd ? `(${ddd}) ${tel}` : tel
-        });
-      }
+      await preencherModalComClienteExistente(cliente.codigo_cliente_omie, cliente);
     } else {
       aviso.style.color = "#16a34a";
       aviso.textContent = "✓ Documento disponível";
