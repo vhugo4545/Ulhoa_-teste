@@ -145,6 +145,17 @@ async function carregarPropostaEditavel(proposta) {
 
   window.propostaEmEdicao = proposta;
   window.propostaAtual = proposta;
+  window._solicitacoesAprovacaoMinimo = [];
+  // Carrega solicitações de aprovação de mínimo da coleção dedicada
+  const _propostaIdParam = new URLSearchParams(location.search).get("id");
+  if (_propostaIdParam) {
+    const _tok = localStorage.getItem("accessToken") || "";
+    fetch(`https://ulhoa-0a02024d350a.herokuapp.com/api/aprovacoes-minimo?propostaId=${_propostaIdParam}`, {
+      headers: { Authorization: `Bearer ${_tok}` }
+    }).then(r => r.ok ? r.json() : [])
+      .then(docs => { window._solicitacoesAprovacaoMinimo = docs || []; })
+      .catch(() => {});
+  }
 
   if (typeof controlarBotoesSidebar === "function") controlarBotoesSidebar();
   if (typeof window.atualizarPillOmie === "function") window.atualizarPillOmie();

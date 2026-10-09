@@ -681,7 +681,8 @@ window.atualizarPropostaEditavel = async function () {
       numeroProposta,
       numeroPedido,
       camposFormulario,
-      grupos
+      grupos,
+      solicitacoesAprovacaoMinimo: window._solicitacoesAprovacaoMinimo || []
     };
 
     const resposta = await fetch(`https://ulhoa-0a02024d350a.herokuapp.com/api/propostas/${idProposta}`, {

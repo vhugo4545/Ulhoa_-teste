@@ -414,12 +414,43 @@ function adicionarTotalizadoresPorAmbienteComAgrupamento() {
         avisoEl.style.cssText = "display:flex;justify-content:center;margin-top:12px;";
         final.appendChild(avisoEl);
       }
+      const _isAdmin   = (localStorage.getItem("usuarioTipo") || "") === "admin";
+      const _solic     = window._solicitacoesAprovacaoMinimo || [];
+      const _aprovada  = _solic.find(s => s.status === "aprovado");
+      const _pendente  = _solic.find(s => s.status === "pendente");
+
+      let _btnHtml = "";
+      if (!_isAdmin) {
+        if (_aprovada) {
+          const _dt = new Date(_aprovada.dataAprovacao).toLocaleString("pt-BR");
+          _btnHtml = `<div style="display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:6px 14px;margin-top:8px;font-size:12px;color:#166534;font-weight:600;">
+            <span class="material-icons-outlined" style="font-size:15px;">check_circle</span>
+            Aprovado por ${_aprovada.aprovador} · ${_dt}
+          </div>`;
+        } else if (_pendente) {
+          const _dt = new Date(_pendente.dataHora).toLocaleString("pt-BR");
+          _btnHtml = `<div style="display:inline-flex;align-items:center;gap:6px;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;padding:6px 14px;margin-top:8px;font-size:12px;color:#92400e;font-weight:600;">
+            <span class="material-icons-outlined" style="font-size:15px;">hourglass_top</span>
+            Aguardando aprovação · solicitado ${_dt}
+          </div>`;
+        } else {
+          _btnHtml = `<button onclick="_solicitarAprovacaoMinimo(${total}, ${totalMinimo})"
+            style="display:inline-flex;align-items:center;gap:6px;background:#1e40af;color:#fff;border:none;border-radius:10px;padding:7px 16px;margin-top:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
+            <span class="material-icons-outlined" style="font-size:15px;">approval</span>
+            Solicitar aprovação
+          </button>`;
+        }
+      }
+
       avisoEl.innerHTML = `
-        <div style="display:inline-flex;align-items:center;gap:8px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:8px 16px;box-shadow:0 1px 4px rgba(220,38,38,.10);">
-          <span class="material-icons-outlined" style="font-size:17px;color:#dc2626;">warning</span>
-          <span style="font-size:12px;font-weight:700;color:#b91c1c;letter-spacing:0.02em;text-transform:uppercase;">Abaixo do mínimo</span>
-          <span style="width:1px;height:14px;background:#fca5a5;display:inline-block;"></span>
-          <span style="font-size:12px;font-weight:600;color:#dc2626;">${totalMinimo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0;">
+          <div style="display:inline-flex;align-items:center;gap:8px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:8px 16px;box-shadow:0 1px 4px rgba(220,38,38,.10);">
+            <span class="material-icons-outlined" style="font-size:17px;color:#dc2626;">warning</span>
+            <span style="font-size:12px;font-weight:700;color:#b91c1c;letter-spacing:0.02em;text-transform:uppercase;">Abaixo do mínimo</span>
+            <span style="width:1px;height:14px;background:#fca5a5;display:inline-block;"></span>
+            <span style="font-size:12px;font-weight:600;color:#dc2626;">${totalMinimo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+          </div>
+          ${_btnHtml}
         </div>`;
     } else if (avisoEl) {
       avisoEl.remove();
@@ -590,5 +621,76 @@ function enumerarGruposVisualmente() {
 document.addEventListener("DOMContentLoaded", () => {
   adicionarTotalizadoresPorAmbienteComAgrupamento();
   monitorarMudancasAmbientes();
- 
+
 });
+
+// ── Solicitação de aprovação para valor abaixo do mínimo ──────────────────────
+window._solicitacoesAprovacaoMinimo = window._solicitacoesAprovacaoMinimo || [];
+
+async function _solicitarAprovacaoMinimo(valorFinal, valorMinimo) {
+  const nome = localStorage.getItem("usuarioNome") || "Usuário";
+  const email = localStorage.getItem("usuarioEmail") || "";
+  const fmtBRL = n => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const confirmou = await new Promise(resolve => {
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999999;display:flex;align-items:center;justify-content:center;font-family:'Poppins',system-ui,sans-serif;";
+    ov.innerHTML = `
+      <div style="background:#fff;border-radius:14px;padding:28px 28px 22px;width:min(420px,92vw);box-shadow:0 16px 48px rgba(0,0,0,.22);">
+        <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:8px;">Solicitar aprovação de desconto</div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:16px;line-height:1.5;">
+          O valor final <strong style="color:#dc2626;">${fmtBRL(valorFinal)}</strong> está abaixo do mínimo <strong>${fmtBRL(valorMinimo)}</strong>.<br>
+          O gestor receberá uma notificação para aprovar ou negar este desconto.
+        </div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:20px;">Solicitante: <strong>${nome}</strong></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button id="_am_cancel" style="padding:9px 20px;border:1px solid #e2e8f0;border-radius:8px;background:#f1f5f9;font-family:inherit;font-size:13px;font-weight:600;color:#475569;cursor:pointer;">Cancelar</button>
+          <button id="_am_ok" style="padding:9px 20px;border:none;border-radius:8px;background:#1e40af;color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">Enviar solicitação</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    document.getElementById("_am_cancel").onclick = () => { document.body.removeChild(ov); resolve(false); };
+    document.getElementById("_am_ok").onclick     = () => { document.body.removeChild(ov); resolve(true); };
+  });
+  if (!confirmou) return;
+
+  const nova = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    solicitante: nome,
+    email,
+    dataHora: new Date().toISOString(),
+    valorFinal,
+    valorMinimo,
+    status: "pendente"
+  };
+
+  // Salva na coleção dedicada e obtém o _id
+  const id = new URLSearchParams(location.search).get("id");
+  if (id) {
+    const token = localStorage.getItem("accessToken") || "";
+    const proposta = window.propostaAtual || window.propostaEmEdicao || {};
+    const resp = await fetch("https://ulhoa-0a02024d350a.herokuapp.com/api/aprovacoes-minimo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        propostaId:      id,
+        numeroProposta:  proposta.numeroProposta || proposta.camposFormulario?.numeroOrcamento || "",
+        nomeCliente:     proposta.camposFormulario?.clientes?.[0]?.nome_razao_social || "",
+        solicitante:     nova.solicitante,
+        email:           nova.email,
+        valorFinal,
+        valorMinimo
+      })
+    }).catch(() => null);
+    if (resp?.ok) {
+      const doc = await resp.json();
+      nova.id = doc._id;
+    }
+  }
+  window._solicitacoesAprovacaoMinimo = [...window._solicitacoesAprovacaoMinimo, nova];
+
+  // Re-renderiza os totais para atualizar o badge
+  if (typeof adicionarTotalizadoresPorAmbienteComAgrupamento === "function") {
+    adicionarTotalizadoresPorAmbienteComAgrupamento();
+  }
+}

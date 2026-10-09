@@ -2657,6 +2657,10 @@ async function validarValorMinimoPermitido() {
   const valorFinal   = parseBRL(finalEl.textContent);
   const valorMinimo  = parseBRL(minimoEl.textContent);
 
+  // Pula validação se já há aprovação de valor mínimo para esta proposta
+  const _aprovado = (window._solicitacoesAprovacaoMinimo || []).some(s => s.status === "aprovado");
+  if (_aprovado) return true;
+
   if (valorMinimo > 0 && valorFinal < valorMinimo) {
     const fmtBRL = (n) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     const continuar = await new Promise(resolve => {
