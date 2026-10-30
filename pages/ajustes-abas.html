@@ -626,11 +626,23 @@
       <div data-aba="perfis" class="card" style="grid-column: 1 / -1; order:2;">
         <div class="card-title">
           <span class="material-icons-outlined">toggle_on</span>
-          Visibilidade de Botões — Usuário Padrão por Status
+          Botões do Vendedor por Status
         </div>
-        <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;">
-          Marque em quais status cada botão deve aparecer para o usuário padrão. Deixe desmarcado para ocultar.
+        <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px;">
+          Marque em quais status cada botão fica liberado. O que acontece com o botão desmarcado depende da opção abaixo.
         </p>
+        <!-- Modo da barra lateral (CFG.botoesModo, lido por visualizarBotoes.js) -->
+        <div id="modo-botoes" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+          <label data-modo="esconder" style="flex:1;min-width:240px;display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
+            <input type="radio" name="modo-botoes" value="esconder" style="margin-top:3px;">
+            <span><b style="font-size:12.5px;">Esconder o botão</b><br><span style="font-size:11px;color:var(--text-muted);">Como funciona hoje: o botão some da barra lateral.</span></span>
+          </label>
+          <label data-modo="apagar" style="flex:1;min-width:240px;display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
+            <input type="radio" name="modo-botoes" value="apagar" style="margin-top:3px;">
+            <span><b style="font-size:12.5px;">Mostrar apagado, com o motivo</b><br><span style="font-size:11px;color:var(--text-muted);">Todos os botões ficam sempre na barra; o que não pode ser usado aparece apagado com o motivo embaixo (ex.: "só a partir de Aprov. gestor", "só Admin").</span></span>
+          </label>
+          <span class="cfg-status" id="cfg-status-modo-botoes" style="align-self:center;"></span>
+        </div>
 
         <div style="overflow-x:auto;">
           <table id="tabela-visibilidade" style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -643,7 +655,7 @@
                 <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Enviado Cliente</th>
                 <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Aprov. Cliente</th>
                 <th style="padding:8px 10px;background:#475569;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Ped. Finalizado</th>
-                <th style="padding:8px 10px;background:#2d4a6b;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Visível para</th>
+                <th style="padding:8px 10px;background:#2d4a6b;color:#fff;border:1px solid #334155;text-align:center;white-space:nowrap;">Liberado para</th>
               </tr>
             </thead>
             <tbody id="tbody-visibilidade"></tbody>
@@ -657,7 +669,7 @@
           <span class="cfg-status" id="cfg-status-visibilidade"></span>
           <span style="font-size:11px;color:#64748b;display:flex;align-items:center;gap:4px;">
             <span class="material-icons-outlined" style="font-size:14px;">info</span>
-            Estas configurações afetam apenas usuários comuns. Administradores sempre veem todos os botões.
+            Vale para quem não tem "Ver todos os botões do orçamento" em Perfis (padrão: todos menos o Admin).
           </span>
         </div>
       </div>
@@ -1140,6 +1152,31 @@
       // fallback: se evento não disparar, renderiza mesmo assim
       setTimeout(visRenderizar, 1500);
     }
+  });
+
+  // ── Modo da barra lateral: esconder (padrão) ou mostrar apagado com motivo ──
+  function modoBotoesRenderizar() {
+    const modo = window.CFgAPI?.obter()?.botoesModo || "esconder";
+    document.querySelectorAll('#modo-botoes input[name="modo-botoes"]').forEach(r => {
+      r.checked = r.value === modo;
+      const lbl = r.closest("label");
+      lbl.style.borderColor = r.checked ? "var(--primary)" : "var(--border)";
+      lbl.style.background  = r.checked ? "#f8fafc" : "#fff";
+    });
+  }
+  document.addEventListener("change", async e => {
+    const r = e.target.closest('#modo-botoes input[name="modo-botoes"]');
+    if (!r) return;
+    const st = document.getElementById("cfg-status-modo-botoes");
+    st.textContent = "Salvando…";
+    const ok = await window.CFgAPI?.salvar(Object.assign({}, window.CFgAPI?.obter() || {}, { botoesModo: r.value }));
+    st.textContent = ok ? "✅ Salvo" : "⚠️ Salvo só neste navegador";
+    setTimeout(() => { st.textContent = ""; }, 3000);
+    modoBotoesRenderizar();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    modoBotoesRenderizar();
+    document.addEventListener("cfgapi:pronto", modoBotoesRenderizar, { once: true });
   });
 
   // ── Perfis: matriz quem pode o quê (permissoes.js) ─────────────────────────

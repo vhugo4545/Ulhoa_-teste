@@ -67,29 +67,39 @@ async function controlarBotoesSidebar() {
   const _pode = (acao, antigo) => window.Permissoes ? window.Permissoes.pode(acao) : antigo;
   const verTodos = _pode("verTodosBotoes", tipoUsuario === "admin");
   const podeAprovar = _pode("aprovarOrcamento", tipoUsuario === "admin");
+  const semTravas = _pode("semTravas", tipoUsuario === "admin" || tipoUsuario === "gestor");
+  // Modo da barra (Ajustes em abas → Perfis): "apagar" mostra apagado com motivo; padrão esconde, como antes
+  MODO_APAGAR = modoBotoes() === "apagar";
+  if (MODO_APAGAR) estilosIndisponivel();
 
-  // Na página de edição: mostra todos os botões e aplica configuração de visibilidade
+  // Botões que esperam a aprovação do gestor mostram o motivo embaixo
+  idsBloqueados.forEach(id => {
+    document.querySelectorAll(`#${id}`).forEach(btn => motivoBotao(btn, statusBloqueado && !semTravas ? "aguarda aprovação do gestor" : ""));
+  });
+
+  // Na página de edição: todos os botões ficam sempre na barra. O que não pode ser usado
+  // aparece apagado, com o motivo embaixo (Ajustes → botões por status e Perfis)
   if (paginaAtual === "editar.html") {
-    // Perfil de consulta (Visualização): sem botões de ação
+    Object.values(botoes).forEach(btn => disponivel(btn));
+
+    // Perfil de consulta (Visualização)
     if (!_pode("editarSalvar", true)) {
-      ["btn-editar", "btn-destravar"].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+      [...Object.values(botoes), ...["btn-editar", "btn-destravar", "btn-pedido-finalizado", "btn-aprovado-cliente", "btn-gerar-pedido-kommo", "btn-sincronizar-kommo"].map(id => document.getElementById(id))]
+        .forEach(btn => indisponivel(btn, "perfil só de consulta"));
       return;
     }
-    // Quando travado para vendedor, mostra APENAS Duplicar
+    // Pendente de aprovação: para o vendedor, só Duplicar fica liberado
     const STATUS_TRAVADO = ["Pendente de aprovação"];
     if (STATUS_TRAVADO.includes(status) && !verTodos && !podeAprovar) {
-      esconderTodos();
-      if (botoes.criar) botoes.criar.style.display = "block";
+      Object.values(botoes).forEach(btn => { if (btn !== botoes.criar) indisponivel(btn, "aguardando aprovação do gestor"); });
       return;
     }
 
-    Object.values(botoes).forEach(btn => btn && (btn.style.display = "block"));
-    if (!_pode("criarDuplicar", true) && botoes.criar) botoes.criar.style.display = "none";
-    if (!podeAprovar && botoes.autorizar) botoes.autorizar.style.display = "none";
+    if (!_pode("criarDuplicar", true)) indisponivel(botoes.criar, "seu perfil não pode");
+    if (!podeAprovar) indisponivel(botoes.autorizar, "só Admin");
 
     if (!verTodos) {
-
-      // Aplica configuração de visibilidade do servidor
+      // Aplica configuração de botões por status do servidor
       const cfgVis = window.CFgAPI?.obter()?.visibilidadeBotoes ||
                      (() => { try { return JSON.parse(localStorage.getItem("cfg_visibilidade_botoes")) || {}; } catch { return {}; } })();
 
@@ -98,28 +108,24 @@ async function controlarBotoesSidebar() {
         if (btnId.startsWith("_")) return;
         const btn = document.getElementById(btnId);
         if (!btn) return;
+        if (btn === botoes.autorizar && podeAprovar) return;
 
-        // Botões exclusivos de admin: esconde para usuário comum
+        // Botões exclusivos de admin
         const publico = btnCfg._publico || "ambos";
         if (publico === "admin") {
-          btn.style.display = "none";
+          indisponivel(btn, "só Admin");
           return;
         }
 
-        // Verifica se deve aparecer no status atual
-        // Se todas as entradas estiverem false, fica oculto independente do status
+        // Liberado só nos status marcados; nenhum marcado = desligado em Ajustes
         const statusEntries = Object.entries(btnCfg).filter(([k]) => !k.startsWith("_"));
         const algumVisivel = statusEntries.some(([, v]) => v === true);
         const nenhum = statusEntries.length > 0 && !algumVisivel;
 
-        if (nenhum || (status && btnCfg[status] === false)) {
-          btn.style.display = "none";
-        }
+        if (nenhum) indisponivel(btn, "desligado em Ajustes");
+        else if (status && btnCfg[status] === false) indisponivel(btn, motivoStatus(btnCfg));
       });
     }
-
-    // Quem aprova sempre vê o botão Aprovar, mesmo que a tabela por status o esconda
-    if (podeAprovar && botoes.autorizar) botoes.autorizar.style.display = "block";
     return;
   }
 
@@ -204,4 +210,83 @@ document.addEventListener("click", function (e) {
     e.stopImmediatePropagation();
     alert("⚠️ Esta ação só está disponível após a proposta ser aprovada pelo gestor.");
   }
+}, true);
+
+// ── Botão indisponível ─────────────────────────────────────────────────────
+// Modo "apagar": fica na barra, apagado, com o motivo embaixo. Modo padrão: some, como antes.
+let MODO_APAGAR = false;
+
+function modoBotoes() {
+  const cfg = window.CFgAPI?.obter() || (() => { try { return JSON.parse(localStorage.getItem("ulhoa_cfg_v1")) || {}; } catch { return {}; } })();
+  return cfg.botoesModo || "esconder";
+}
+
+const STATUS_ORDEM = [
+  ["Orçamento Iniciado", "Orç. iniciado"],
+  ["Pendente de aprovação", "Pend. aprovação"],
+  ["Aprovado Pelo Gestor", "Aprov. gestor"],
+  ["Enviado Para o Cliente", "Enviado ao cliente"],
+  ["Orçamento Aprovado pelo Cliente", "Aprov. cliente"],
+  ["Pedido Finalizado", "Ped. finalizado"],
+];
+
+// "a partir de X" quando liberado do status X até o fim; senão "só em X, Y"
+function motivoStatus(btnCfg) {
+  const lib = STATUS_ORDEM.map(([k]) => btnCfg[k] !== false);
+  const primeiro = lib.indexOf(true);
+  if (primeiro < 0) return "desligado em Ajustes";
+  if (lib.slice(primeiro).every(Boolean)) return `só a partir de ${STATUS_ORDEM[primeiro][1]}`;
+  return "só em " + STATUS_ORDEM.filter((_, i) => lib[i]).map(([, r]) => r).join(", ");
+}
+
+function motivoBotao(btn, texto) {
+  if (!btn) return;
+  if (!MODO_APAGAR) texto = "";
+  let m = btn.querySelector(":scope > .motivo-btn");
+  if (!texto) { m?.remove(); return; }
+  if (!m) {
+    m = document.createElement("small");
+    m.className = "motivo-btn";
+    btn.appendChild(m);
+  }
+  m.textContent = texto;
+}
+
+function indisponivel(btn, motivo) {
+  if (!btn) return;
+  if (!MODO_APAGAR) { btn.style.display = "none"; return; }
+  btn.style.display = "";
+  btn.classList.add("btn-indisponivel");
+  btn.dataset.motivo = motivo;
+  motivoBotao(btn, motivo);
+}
+
+function disponivel(btn) {
+  if (!btn) return;
+  btn.style.display = MODO_APAGAR ? "" : "block";
+  btn.classList.remove("btn-indisponivel");
+  delete btn.dataset.motivo;
+  motivoBotao(btn, "");
+}
+
+function estilosIndisponivel() {
+  if (document.getElementById("estilo-indisponivel")) return;
+  const st = document.createElement("style");
+  st.id = "estilo-indisponivel";
+  st.textContent = `
+    .sidebar-button { flex-wrap: wrap; }
+    .sidebar-button.btn-indisponivel { opacity: .45; cursor: not-allowed; }
+    .sidebar-button.btn-indisponivel:hover { background: rgba(255,255,255,.06); color: #cbd5e1; }
+    .sidebar-button .motivo-btn { flex-basis: 100%; padding-left: 26px; margin-top: -3px; font-size: 10px;
+      font-weight: 500; font-style: italic; color: #fbbf24; line-height: 1.2; }`;
+  document.head.appendChild(st);
+}
+
+// Clique num botão indisponível: não executa e explica o motivo
+document.addEventListener("click", function (e) {
+  const btn = e.target.closest(".btn-indisponivel");
+  if (!btn) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  alert(`⚠️ Indisponível: ${btn.dataset.motivo || "não liberado para o seu perfil"}.`);
 }, true);
