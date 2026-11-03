@@ -1007,6 +1007,34 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
     margin: [0, 0, 0, 0]
   });
 
+  // ── ÚLTIMA PÁGINA: todos os QR codes de apontamento (item, produto e ambiente) ──
+  const etiquetas = [];
+  gruposDados.forEach((g, idx) => (g.qrs || []).forEach(q => etiquetas.push({ ...q, item: idx + 1 })));
+  if (etiquetas.length) {
+    content.push({ text: `QR CODES DE APONTAMENTO — PEDIDO ${numeroPedido}`, bold: true, fontSize: 12, alignment: 'center', pageBreak: 'before', margin: [0, 0, 0, 2] });
+    content.push({ text: 'Leia no app de produção para iniciar, pausar e finalizar as etapas de cada item.', fontSize: 8, color: '#555', alignment: 'center', margin: [0, 0, 0, 8] });
+    const COLS = 3;
+    const celula = q => ({
+      stack: [
+        { text: `ITEM ${q.item}`, bold: true, fontSize: 12, alignment: 'center' },
+        { qr: q.texto, fit: 118, eccLevel: 'M', alignment: 'center', margin: [0, 4, 0, 4] },
+        { text: sanitize(q.nome), bold: true, fontSize: 8, alignment: 'center' },
+        { text: [{ text: 'Ambiente: ', bold: true }, sanitize(q.area || '-')], fontSize: 8, alignment: 'center', margin: [0, 2, 0, 0] },
+      ],
+      margin: [4, 6, 4, 6],
+    });
+    const linhas = [];
+    for (let i = 0; i < etiquetas.length; i += COLS) {
+      const linha = etiquetas.slice(i, i + COLS).map(celula);
+      while (linha.length < COLS) linha.push({ text: '', border: [false, false, false, false] });
+      linhas.push(linha);
+    }
+    content.push({
+      table: { widths: Array(COLS).fill('*'), body: linhas, dontBreakRows: true },
+      layout: { hLineWidth: () => 1, vLineWidth: () => 1, hLineColor: () => '#bbbbbb', vLineColor: () => '#bbbbbb' },
+    });
+  }
+
   // ── documento ──────────────────────────────────────────────────────────────
   const docDefinition = {
     pageSize: 'A4',
@@ -1044,7 +1072,7 @@ function qrApontamentoGrupo(g, { numeroPedido, nomeCliente }) {
   const qrs = [];
   for (const nome of produtos) {
     const texto = 'UM2:' + [propId, grupoId, qrCampo(nome, 500), qrCampo(numeroPedido, 12), qrCampo(nomeCliente, 30), qrCampo(area, 80)].join('|');
-    qrs.push({ texto, rotulo: nome.length > 40 ? nome.slice(0, 38) + '…' : nome });
+    qrs.push({ texto, rotulo: nome.length > 40 ? nome.slice(0, 38) + '…' : nome, nome, area });
   }
   return qrs;
 }
