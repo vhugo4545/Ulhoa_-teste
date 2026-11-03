@@ -649,7 +649,7 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
 
   // ── QR de apontamento: um por produto, lido pelo app de produção (start/stop) ──
   for (const g of gruposDados) {
-    try { g.qrs = await qrApontamentoGrupo(g, { numeroPedido, nomeCliente }); }
+    try { g.qrs = qrApontamentoGrupo(g, { numeroPedido, nomeCliente }); }
     catch (e) { console.warn('QR de apontamento não gerado:', e); g.qrs = []; }
   }
 
@@ -884,10 +884,10 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
           { stack: [
               { text: tituloItem.text, bold: true, fontSize: 11 },
               { text: 'Leia o QR no app de produção para iniciar e parar as etapas', fontSize: 7, color: '#555', margin: [0, 3, 0, 0] }
-            ], fillColor: '#e5e7eb', alignment: 'center', margin: [0, 30, 0, 0] },
+            ], fillColor: '#e5e7eb', alignment: 'center', margin: [0, 44, 0, 0] },
           { columns: qrs.map(q => ({ width: 'auto', stack: [
-              { qr: q.texto, fit: 92, eccLevel: 'L', alignment: 'center' },
-              { text: q.rotulo, fontSize: 6, alignment: 'center', margin: [0, 2, 0, 0], width: 92 }
+              { qr: q.texto, fit: 118, eccLevel: 'M', alignment: 'center' },
+              { text: q.rotulo, fontSize: 6, alignment: 'center', margin: [0, 2, 0, 0], width: 118 }
             ] })), columnGap: 6, alignment: 'center' }
         ]]
       } : {
@@ -1020,54 +1020,25 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
 }
 
 // ── QR de apontamento (app de produção) ─────────────────────────────────────
-// Etiqueta "UM1:" + JSON compactado (deflate-raw, base64); sem CompressionStream vai "UM0:" + JSON.
-// k usa a mesma chave do app-producao: idProposta__idGrupo__nomeProduto (prodKey em app-producao/public/js/utils.js).
-const QR_APONTAMENTO_MAX = 1800; // caracteres: acima disso o QR fica denso demais para ler pela câmera
-const QR_TODAS_ETAPAS = Array.from({ length: 16 }, (_, i) => i);
+// Etiqueta curta para a câmera do celular ler no papel: "UM2:" + campos separados por "|"
+//   idProposta | idGrupo | nomeProduto | pedido | cliente | ambiente
+// O app monta a chave do app-producao: idProposta__idGrupo__nomeProduto (prodKey em app-producao/public/js/utils.js).
+const qrCampo = (t, max) => String(t || '').replace(/[|\r\n]+/g, ' ').trim().slice(0, max);
 
-async function qrCodificar(obj) {
-  const json = JSON.stringify(obj);
-  if (typeof CompressionStream === 'undefined') return 'UM0:' + json;
-  const comp = new Uint8Array(await new Response(
-    new Blob([new TextEncoder().encode(json)]).stream().pipeThrough(new CompressionStream('deflate-raw'))
-  ).arrayBuffer());
-  let bin = '';
-  for (let i = 0; i < comp.length; i += 8192) bin += String.fromCharCode(...comp.subarray(i, i + 8192));
-  return 'UM1:' + btoa(bin);
-}
-
-async function qrApontamentoGrupo(g, { numeroPedido, nomeCliente }) {
+function qrApontamentoGrupo(g, { numeroPedido, nomeCliente }) {
   const prop    = window.propostaAtual || {};
   const propId  = prop._id || new URLSearchParams(location.search).get('id') || '';
-  const val     = id => document.getElementById(id)?.value?.trim() || '';
   // Grupo salvo correspondente (pelo nome; senão pela posição na tela)
   const blocos  = Array.from(document.querySelectorAll("table[id^='tabela-bloco-']")).map(t => t.id.replace('tabela-', ''));
   const salvo   = (prop.grupos || []).find(x => x.nome === g.nomeGrupo) || (prop.grupos || [])[blocos.indexOf(g.grupoId)] || {};
   const grupoId = salvo._id || g.grupoId;
 
-  const num = v => { const t = String(v); const n = parseFloat(t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t); return isNaN(n) ? v : n; };
   const acabados = g.itens.filter(it => it.utilizacao === 'Produto Acabado');
   const produtos = acabados.length ? acabados.map(it => it.descricao) : [salvo.nome || g.nomeGrupo];
-  const insumos  = g.itens.filter(it => it.utilizacao !== 'Produto Acabado')
-    .map(it => [num(it.qtd), it.unidade || '', it.descricao, it.utilizacao && it.utilizacao !== '-' ? it.utilizacao : '']);
-
-  const base = {
-    v: 1, p: numeroPedido, c: nomeCliente, a: g.nomeAmbiente, pe: g.previsaoEntrega || '',
-    e: { r: val('rua'), n: val('numero'), co: val('complemento'), b: val('bairro'), ci: val('cidade'), uf: val('estado'), cep: val('cep') },
-    pz: '', et: QR_TODAS_ETAPAS,
-    dr: { ac: val('dataProjetoAssinado'), ie: '', pv: '', lf: '', ct: val('dataPedidoAssinado') },
-  };
 
   const qrs = [];
   for (const nome of produtos) {
-    const obj = { ...base, k: `${propId}__${grupoId}__${encodeURIComponent(nome).replace(/'/g, '%27')}`, n: nome, g: nome, i: insumos.slice() };
-    let texto = await qrCodificar(obj);
-    // Lista de insumos grande: corta do fim até caber, avisando quantos ficaram de fora
-    while (texto.length > QR_APONTAMENTO_MAX && obj.i.length) {
-      obj.i.pop();
-      obj.ic = insumos.length;
-      texto = await qrCodificar(obj);
-    }
+    const texto = 'UM2:' + [propId, grupoId, qrCampo(nome, 500), qrCampo(numeroPedido, 12), qrCampo(nomeCliente, 30), qrCampo(g.nomeAmbiente, 30)].join('|');
     qrs.push({ texto, rotulo: nome.length > 40 ? nome.slice(0, 38) + '…' : nome });
   }
   return qrs;
