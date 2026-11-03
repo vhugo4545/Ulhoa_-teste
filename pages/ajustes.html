@@ -1761,11 +1761,13 @@
       expl.style.cssText = "font-size:11px;color:#64748b;margin:4px 0 10px;line-height:1.4;";
       expl.textContent = "Clique no status para bloquear ou liberar cada PDF nesta etapa. Bloqueado: o vendedor não gera aquele PDF. Admin e gestor sempre geram.";
 
+      const cbs = {};
       const grade = itens => {
         const g = document.createElement("div");
         g.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;";
         itens.forEach(btn => {
           const { cb, aoMudar } = criarCb(btn);
+          cbs[btn.id] = cb;
           const info = PDF_INFO[btn.id] || { icone: "picture_as_pdf", dica: "" };
           const cel = document.createElement("div");
           cel.style.cssText = "border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;background:#fff;display:flex;flex-direction:column;gap:6px;align-items:flex-start;";
@@ -1789,6 +1791,17 @@
         grade(BOTOES_PDF.filter(b => !PDFS_FOLHAS.has(b.id))),
         sub,
         grade(BOTOES_PDF.filter(b => PDFS_FOLHAS.has(b.id))));
+
+      // Liberar "Folhas de Impressão (todas)" libera também as 3 folhas de dentro
+      cbs["btn-folhas-impressao"]?.addEventListener("change", e => {
+        if (e.target.checked) return;
+        PDFS_FOLHAS.forEach(id => {
+          const f = cbs[id];
+          if (!f || !f.checked) return;
+          f.checked = false;
+          f.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+      });
       return sec;
     }
 
