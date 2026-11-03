@@ -1034,12 +1034,16 @@ function qrApontamentoGrupo(g, { numeroPedido, nomeCliente }) {
   const salvo   = (prop.grupos || []).find(x => x.nome === g.nomeGrupo) || (prop.grupos || [])[blocos.indexOf(g.grupoId)] || {};
   const grupoId = salvo._id || g.grupoId;
 
+  // Área como o app-producao rotula os comentários de ambiente: grupo.ambiente || grupo.nome || 'Sem área'
+  const ambiente = document.querySelector(`input[data-id-grupo='${g.grupoId}'][placeholder='Ambiente']`)?.value?.trim() || '';
+  const area = ambiente || salvo.nome || g.nomeGrupo || 'Sem área';
+
   const acabados = g.itens.filter(it => it.utilizacao === 'Produto Acabado');
   const produtos = acabados.length ? acabados.map(it => it.nomeBruto || it.descricao) : [salvo.nome || g.nomeGrupo];
 
   const qrs = [];
   for (const nome of produtos) {
-    const texto = 'UM2:' + [propId, grupoId, qrCampo(nome, 500), qrCampo(numeroPedido, 12), qrCampo(nomeCliente, 30), qrCampo(g.nomeAmbiente, 30)].join('|');
+    const texto = 'UM2:' + [propId, grupoId, qrCampo(nome, 500), qrCampo(numeroPedido, 12), qrCampo(nomeCliente, 30), qrCampo(area, 80)].join('|');
     qrs.push({ texto, rotulo: nome.length > 40 ? nome.slice(0, 38) + '…' : nome });
   }
   return qrs;
