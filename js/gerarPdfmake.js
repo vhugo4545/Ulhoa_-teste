@@ -637,7 +637,8 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
         const _unidadeDOM = tr.querySelector('.unidade-medida')?.textContent?.trim() || '';
         const _codigoCell = tds[4]?.textContent?.trim() || '';
         const unidade = (_unidadeDOM && _unidadeDOM !== '—') ? _unidadeDOM : ((window._produtosUnidadeMap && _codigoCell && window._produtosUnidadeMap[_codigoCell]) || '-');
-        return { utilizacao, descricao, qtd: qtdInput?.value?.trim() || '1', unidade };
+        // nomeBruto: o texto como é salvo em nome_produto (sem sanitize), para a chave do QR bater com o app-producao
+        return { utilizacao, descricao, nomeBruto: tds[1]?.textContent?.trim() || '', qtd: qtdInput?.value?.trim() || '1', unidade };
       })
       .filter(x => x.descricao && x.descricao !== '-');
 
@@ -1034,7 +1035,7 @@ function qrApontamentoGrupo(g, { numeroPedido, nomeCliente }) {
   const grupoId = salvo._id || g.grupoId;
 
   const acabados = g.itens.filter(it => it.utilizacao === 'Produto Acabado');
-  const produtos = acabados.length ? acabados.map(it => it.descricao) : [salvo.nome || g.nomeGrupo];
+  const produtos = acabados.length ? acabados.map(it => it.nomeBruto || it.descricao) : [salvo.nome || g.nomeGrupo];
 
   const qrs = [];
   for (const nome of produtos) {
