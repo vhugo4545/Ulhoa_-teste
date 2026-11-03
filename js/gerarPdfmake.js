@@ -641,10 +641,17 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
       })
       .filter(x => x.descricao && x.descricao !== '-');
 
-    gruposDados.push({ grupoId, nomeAmbiente, resumoGrupo, informacoesProduto, previsaoEntrega, itens });
+    const nomeGrupo = document.querySelector(`#${grupoId} span[id^='titulo-accordion-']`)?.textContent?.trim() || grupoId;
+    gruposDados.push({ grupoId, nomeGrupo, nomeAmbiente, resumoGrupo, informacoesProduto, previsaoEntrega, itens });
   });
 
   const logoBase64 = await carregarLogoBase64('../js/logo.jpg');
+
+  // ── QR de apontamento: um por produto, lido pelo app de produção (start/stop) ──
+  for (const g of gruposDados) {
+    try { g.qrs = await qrApontamentoGrupo(g, { numeroPedido, nomeCliente }); }
+    catch (e) { console.warn('QR de apontamento não gerado:', e); g.qrs = []; }
+  }
 
   // ── cores / medidas ────────────────────────────────────────────────────────
   const COR_BORDA    = '#111111';
@@ -868,15 +875,28 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
     const nomeAmbUp = String(g.nomeAmbiente || '').toUpperCase();
 
     // Cabeçalho bold (bloco separado — NÃO repete quando a tabela quebra)
+    const tituloItem = { text: `ITEM ${num}   |   AMBIENTE: ${nomeAmbUp}`, bold: true, fontSize: 11, fillColor: '#e5e7eb', alignment: 'center', margin: [0, 5, 0, 5] };
+    const qrs = g.qrs || [];
     content.push({
-      table: {
-        widths: ['*'],
+      table: qrs.length ? {
+        widths: ['*', 'auto'],
         body: [[
-          { text: `ITEM ${num}   |   AMBIENTE: ${nomeAmbUp}`, bold: true, fontSize: 11, fillColor: '#e5e7eb', alignment: 'center', margin: [0, 5, 0, 5] }
+          { stack: [
+              { text: tituloItem.text, bold: true, fontSize: 11 },
+              { text: 'Leia o QR no app de produção para iniciar e parar as etapas', fontSize: 7, color: '#555', margin: [0, 3, 0, 0] }
+            ], fillColor: '#e5e7eb', alignment: 'center', margin: [0, 30, 0, 0] },
+          { columns: qrs.map(q => ({ width: 'auto', stack: [
+              { qr: q.texto, fit: 92, eccLevel: 'L', alignment: 'center' },
+              { text: q.rotulo, fontSize: 6, alignment: 'center', margin: [0, 2, 0, 0], width: 92 }
+            ] })), columnGap: 6, alignment: 'center' }
         ]]
+      } : {
+        widths: ['*'],
+        body: [[tituloItem]]
       },
-      layout: { defaultBorder: true },
-      margin: [0, 8, 0, 0]
+      layout: qrs.length ? { defaultBorder: true, paddingTop: () => 4, paddingBottom: () => 4, vLineWidth: () => 1, hLineWidth: () => 1 } : { defaultBorder: true },
+      margin: [0, 8, 0, 0],
+      unbreakable: true
     });
 
     // Tabela com headerRows:1 — só a linha de colunas repete em continuações
@@ -997,6 +1017,60 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
 
   ocultarCarregando && ocultarCarregando();
   _mostrarPreviewPDF(docDefinition, `OrdemServico_${numeroPedido}.pdf`);
+}
+
+// ── QR de apontamento (app de produção) ─────────────────────────────────────
+// Etiqueta "UM1:" + JSON compactado (deflate-raw, base64); sem CompressionStream vai "UM0:" + JSON.
+// k usa a mesma chave do app-producao: idProposta__idGrupo__nomeProduto (prodKey em app-producao/public/js/utils.js).
+const QR_APONTAMENTO_MAX = 1800; // caracteres: acima disso o QR fica denso demais para ler pela câmera
+const QR_TODAS_ETAPAS = Array.from({ length: 16 }, (_, i) => i);
+
+async function qrCodificar(obj) {
+  const json = JSON.stringify(obj);
+  if (typeof CompressionStream === 'undefined') return 'UM0:' + json;
+  const comp = new Uint8Array(await new Response(
+    new Blob([new TextEncoder().encode(json)]).stream().pipeThrough(new CompressionStream('deflate-raw'))
+  ).arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < comp.length; i += 8192) bin += String.fromCharCode(...comp.subarray(i, i + 8192));
+  return 'UM1:' + btoa(bin);
+}
+
+async function qrApontamentoGrupo(g, { numeroPedido, nomeCliente }) {
+  const prop    = window.propostaAtual || {};
+  const propId  = prop._id || new URLSearchParams(location.search).get('id') || '';
+  const val     = id => document.getElementById(id)?.value?.trim() || '';
+  // Grupo salvo correspondente (pelo nome; senão pela posição na tela)
+  const blocos  = Array.from(document.querySelectorAll("table[id^='tabela-bloco-']")).map(t => t.id.replace('tabela-', ''));
+  const salvo   = (prop.grupos || []).find(x => x.nome === g.nomeGrupo) || (prop.grupos || [])[blocos.indexOf(g.grupoId)] || {};
+  const grupoId = salvo._id || g.grupoId;
+
+  const num = v => { const t = String(v); const n = parseFloat(t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t); return isNaN(n) ? v : n; };
+  const acabados = g.itens.filter(it => it.utilizacao === 'Produto Acabado');
+  const produtos = acabados.length ? acabados.map(it => it.descricao) : [salvo.nome || g.nomeGrupo];
+  const insumos  = g.itens.filter(it => it.utilizacao !== 'Produto Acabado')
+    .map(it => [num(it.qtd), it.unidade || '', it.descricao, it.utilizacao && it.utilizacao !== '-' ? it.utilizacao : '']);
+
+  const base = {
+    v: 1, p: numeroPedido, c: nomeCliente, a: g.nomeAmbiente, pe: g.previsaoEntrega || '',
+    e: { r: val('rua'), n: val('numero'), co: val('complemento'), b: val('bairro'), ci: val('cidade'), uf: val('estado'), cep: val('cep') },
+    pz: '', et: QR_TODAS_ETAPAS,
+    dr: { ac: val('dataProjetoAssinado'), ie: '', pv: '', lf: '', ct: val('dataPedidoAssinado') },
+  };
+
+  const qrs = [];
+  for (const nome of produtos) {
+    const obj = { ...base, k: `${propId}__${grupoId}__${encodeURIComponent(nome).replace(/'/g, '%27')}`, n: nome, g: nome, i: insumos.slice() };
+    let texto = await qrCodificar(obj);
+    // Lista de insumos grande: corta do fim até caber, avisando quantos ficaram de fora
+    while (texto.length > QR_APONTAMENTO_MAX && obj.i.length) {
+      obj.i.pop();
+      obj.ic = insumos.length;
+      texto = await qrCodificar(obj);
+    }
+    qrs.push({ texto, rotulo: nome.length > 40 ? nome.slice(0, 38) + '…' : nome });
+  }
+  return qrs;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
