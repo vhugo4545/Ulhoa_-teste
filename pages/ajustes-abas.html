@@ -2055,6 +2055,7 @@
       const termo = normalizarBusca(window._kommoBusca).trim();
       let visiveis = 0;
       container.querySelectorAll("[data-grupo-etapas]").forEach(grupo => {
+        if (grupo.dataset.funilOculto) { grupo.style.display = "none"; return; }   // escolhido em "Funis visíveis"
         let noGrupo = 0;
         grupo.querySelectorAll(":scope > [data-busca]").forEach(card => {
           const ok = !termo || card.dataset.busca.includes(termo);
@@ -2094,6 +2095,66 @@
       obrig:  "Campos que precisam estar preenchidos para salvar a proposta.",
     };
 
+    // ── Funis visíveis: cada usuário esconde os funis que não precisa ver (fica guardado neste navegador) ──
+    // Só esconde a lista do funil; "Etapas em Comum" e as regras salvas não mudam.
+    const LS_FUNIS = "ajustes_funis_ocultos_" + (localStorage.getItem("usuarioId") || localStorage.getItem("usuarioEmail") || "geral");
+    const funisOcultos = () => { try { return new Set(JSON.parse(localStorage.getItem(LS_FUNIS)) || []); } catch { return new Set(); } };
+    const aplicarFunisOcultos = () => {
+      const ocultos = funisOcultos();
+      container.querySelectorAll("[data-pipeline-id]").forEach(g => {
+        if (ocultos.has(g.dataset.pipelineId)) g.dataset.funilOculto = "1"; else delete g.dataset.funilOculto;
+      });
+      const btn = container.querySelector("[data-btn-funis]");
+      if (btn) btn.innerHTML = `<span class="material-icons-outlined" style="font-size:14px;">visibility</span> Funis visíveis${ocultos.size ? ` <b style="color:#b45309;">(${ocultos.size} oculto${ocultos.size > 1 ? "s" : ""})</b>` : ""}`;
+      filtrarEtapas();
+    };
+    const abrirFunisVisiveis = () => {
+      const ocultos = funisOcultos();
+      const lista = pipelines.filter(p => p.etapas?.length);
+      document.getElementById("funis-ov")?.remove();
+      const ov = document.createElement("div");
+      ov.id = "funis-ov";
+      ov.style.cssText = "position:fixed;inset:0;z-index:10000;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:20px;";
+      ov.innerHTML = `<div style="background:#fff;border-radius:14px;padding:20px;width:100%;max-width:420px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.25);">
+        <div style="font-size:15px;font-weight:800;color:#0f172a;">Funis visíveis</div>
+        <div style="font-size:12px;color:#64748b;margin:4px 0 12px;">Desmarque os funis que você não precisa ver. A escolha fica guardada para as próximas vezes que abrir esta página.</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button type="button" data-todos="1" style="font-size:11px;font-weight:700;border:1px solid #e2e8f0;background:#f8fafc;border-radius:6px;padding:4px 10px;cursor:pointer;">Marcar todos</button>
+          <button type="button" data-todos="0" style="font-size:11px;font-weight:700;border:1px solid #e2e8f0;background:#f8fafc;border-radius:6px;padding:4px 10px;cursor:pointer;">Desmarcar todos</button>
+        </div>
+        <div style="overflow-y:auto;border:1px solid #e2e8f0;border-radius:10px;">
+          ${lista.map(p => `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;font-size:13px;color:#1e293b;">
+            <input type="checkbox" data-funil="${String(p.pipeline_id)}" ${ocultos.has(String(p.pipeline_id)) ? "" : "checked"} style="width:16px;height:16px;accent-color:#16a34a;">
+            <span style="flex:1;">${(p.pipeline_name || "Pipeline " + p.pipeline_id).replace(/[<>&]/g, "")}</span>
+            <span style="font-size:11px;color:#94a3b8;">${p.etapas.length} etapa(s)</span></label>`).join("")}
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+          <button type="button" data-fechar style="padding:8px 14px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-weight:700;cursor:pointer;">Cancelar</button>
+          <button type="button" data-salvar style="padding:8px 16px;border-radius:8px;border:none;background:#16a34a;color:#fff;font-weight:700;cursor:pointer;">Salvar</button>
+        </div></div>`;
+      document.body.appendChild(ov);
+      ov.addEventListener("change", e => e.stopPropagation());
+      ov.onclick = e => {
+        if (e.target === ov || e.target.closest("[data-fechar]")) return ov.remove();
+        const t = e.target.closest("[data-todos]");
+        if (t) ov.querySelectorAll("[data-funil]").forEach(cb => cb.checked = t.dataset.todos === "1");
+        if (e.target.closest("[data-salvar]")) {
+          const novos = [...ov.querySelectorAll("[data-funil]")].filter(cb => !cb.checked).map(cb => cb.dataset.funil);
+          try { localStorage.setItem(LS_FUNIS, JSON.stringify(novos)); } catch {}
+          ov.remove();
+          aplicarFunisOcultos();
+        }
+      };
+    };
+    const btnFunis = () => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.dataset.btnFunis = "1";
+      b.style.cssText = "margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;text-transform:none;letter-spacing:0;color:#334155;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:4px 10px;cursor:pointer;font-family:inherit;";
+      b.onclick = e => { e.stopPropagation(); abrirFunisVisiveis(); };
+      return b;
+    };
+
     // ── Detecta etapas com nome idêntico em pipelines diferentes ─────────────
     const todosEtapas = [];
     pipelines.forEach(p => (p.etapas || []).forEach(e => todosEtapas.push({ etapa: e, pipeline: p })));
@@ -2107,6 +2168,7 @@
       Object.entries(porNomeMap).filter(([, l]) => l.length > 1).map(([k]) => k)
     );
 
+    if (!nomesMergeados.size) barraBusca.appendChild(btnFunis());
     if (nomesMergeados.size > 0) {
       const comumGroup = document.createElement("div");
       comumGroup.dataset.grupoEtapas = "1";
@@ -2114,6 +2176,7 @@
       const comumTitle = document.createElement("div");
       comumTitle.style.cssText = "font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:6px;";
       comumTitle.innerHTML = `<span class="material-icons-outlined" style="font-size:13px;color:#94a3b8;">merge_type</span>Etapas em Comum (${nomesMergeados.size})`;
+      comumTitle.appendChild(btnFunis());
       comumGroup.appendChild(comumTitle);
 
       Object.values(porNomeMap).filter(list => list.length > 1).forEach(list => {
@@ -2350,6 +2413,7 @@
 
       const pipeGroup = document.createElement("div");
       pipeGroup.dataset.grupoEtapas = "1";
+      pipeGroup.dataset.pipelineId = String(pipeline.pipeline_id);
       pipeGroup.style.cssText = "margin-bottom:24px;";
       pipeGroup.appendChild(pipeTitle);
 
@@ -2571,7 +2635,7 @@
       container.appendChild(pipeGroup);
     });
 
-    filtrarEtapas();
+    aplicarFunisOcultos();
 
     // Sincroniza estado inicial dos checkboxes globais com as etapas já carregadas
     syncGlobalCheckboxes();
