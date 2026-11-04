@@ -701,6 +701,51 @@
         });
       </script>
 
+      <!-- Card: Criar proposta fora da Kommo (CFG.criarPropostaSoGestor — js/regraCriarProposta.js) -->
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-title">
+          <span class="material-icons-outlined">add_box</span>
+          Criar proposta fora da Kommo
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;">
+          Com a regra ligada, o botão "Criar Proposta" da listagem some para os vendedores: só gestores e admins criam propostas
+          sem passar pela Kommo. As propostas que vêm da Kommo continuam sendo criadas normalmente.
+        </p>
+        <label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);">
+          <input type="checkbox" id="cpk-ativo" style="width:18px;height:18px;cursor:pointer;accent-color:#16a34a;">
+          <span id="cpk-ativo-label">Regra desligada (todos podem criar)</span>
+        </label>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap;">
+          <button class="cfg-save-btn" onclick="salvarRegraCriarProposta()">
+            <span class="material-icons-outlined">cloud_upload</span> Salvar
+          </button>
+          <span class="cfg-status" id="cfg-status-cpk"></span>
+        </div>
+      </div>
+      <script>
+        function cpkRotulo(on) { return on ? "Regra ligada (só gestores e admins criam)" : "Regra desligada (todos podem criar)"; }
+        function cpkRenderizar() {
+          const cb = document.getElementById("cpk-ativo");
+          if (!cb) return;
+          cb.checked = window.CFgAPI?.obter()?.criarPropostaSoGestor === true;
+          document.getElementById("cpk-ativo-label").textContent = cpkRotulo(cb.checked);
+        }
+        async function salvarRegraCriarProposta() {
+          const ativo = !!document.getElementById("cpk-ativo")?.checked;
+          const st = document.getElementById("cfg-status-cpk");
+          if (st) st.textContent = "Salvando…";
+          const ok = await window.CFgAPI?.salvar(Object.assign({}, window.CFgAPI?.obter() || {}, { criarPropostaSoGestor: ativo }));
+          if (st) { st.textContent = ok === false ? "Salvo localmente" : "Salvo!"; setTimeout(() => st.textContent = "", 3000); }
+        }
+        document.addEventListener("DOMContentLoaded", () => {
+          document.getElementById("cpk-ativo")?.addEventListener("change", e => {
+            document.getElementById("cpk-ativo-label").textContent = cpkRotulo(e.target.checked);
+          });
+          cpkRenderizar();
+          setTimeout(cpkRenderizar, 1500); // configurações do servidor chegam depois do cache local
+        });
+      </script>
+
       <!-- Card: Configuração por Etapa da Kommo (Bloqueio + Obrigatoriedade) -->
       <div class="card" style="grid-column: 1 / -1; padding: 0; overflow: hidden;">
 
