@@ -887,7 +887,7 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
               { text: 'Leia o QR no app de produção para iniciar e parar as etapas', fontSize: 7, color: '#555', margin: [0, 3, 0, 0] }
             ], fillColor: '#e5e7eb', alignment: 'center', margin: [0, 44, 0, 0] },
           { columns: qrs.map(q => ({ width: 'auto', stack: [
-              { qr: q.texto, fit: 118, eccLevel: 'M', alignment: 'center' },
+              q.texto ? { qr: q.texto, fit: 118, eccLevel: 'M', alignment: 'center' } : { canvas: [{ type: 'rect', x: 0, y: 0, w: 118, h: 118, lineWidth: 1, lineColor: '#999999' }], alignment: 'center' },
               { text: q.rotulo, fontSize: 6, alignment: 'center', margin: [0, 2, 0, 0], width: 118 }
             ] })), columnGap: 6, alignment: 'center' }
         ]]
@@ -1017,7 +1017,7 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
     const celula = q => ({
       stack: [
         { text: `ITEM ${q.item}`, bold: true, fontSize: 12, alignment: 'center' },
-        { qr: q.texto, fit: 118, eccLevel: 'M', alignment: 'center', margin: [0, 4, 0, 4] },
+        q.texto ? { qr: q.texto, fit: 118, eccLevel: 'M', alignment: 'center', margin: [0, 4, 0, 4] } : { ...{ canvas: [{ type: 'rect', x: 0, y: 0, w: 118, h: 118, lineWidth: 1, lineColor: '#999999' }], alignment: 'center' }, margin: [0, 4, 0, 4] },
         { text: sanitize(q.nome), bold: true, fontSize: 8, alignment: 'center' },
         { text: [{ text: 'Ambiente: ', bold: true }, sanitize(q.area || '-')], fontSize: 8, alignment: 'center', margin: [0, 2, 0, 0] },
       ],
@@ -1054,6 +1054,14 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
 // O app monta a chave do app-producao: idProposta__idGrupo__nomeProduto (prodKey em app-producao/public/js/utils.js).
 const qrCampo = (t, max) => String(t || '').replace(/[|\r\n]+/g, ' ').trim().slice(0, max);
 
+// Produtos que não são fabricados não ganham QR (no lugar fica um quadrado vazio)
+const _semAcento = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+// Nomes como aparecem nos pedidos (grupos e produtos acabados); "faturamento direto" no nome também não gera QR
+// (Calha Infinity / Botão / Chapa - Faturamento Direto)
+const PRODUTOS_SEM_QR = ['Vidro', 'Instalação', 'Serviço de Instalação', 'Despesa de Viagem / Logistica', 'Despesas de Viagem / Logistica',
+  'Serviço de Terceiros'].map(_semAcento);
+const produtoSemQr = nome => { const n = _semAcento(nome); return PRODUTOS_SEM_QR.includes(n) || n.includes('faturamento direto'); };
+
 function qrApontamentoGrupo(g, { numeroPedido, nomeCliente }) {
   const prop    = window.propostaAtual || {};
   const propId  = prop._id || new URLSearchParams(location.search).get('id') || '';
@@ -1072,7 +1080,7 @@ function qrApontamentoGrupo(g, { numeroPedido, nomeCliente }) {
   const qrs = [];
   for (const nome of produtos) {
     const texto = 'UM2:' + [propId, grupoId, qrCampo(nome, 500), qrCampo(numeroPedido, 12), qrCampo(nomeCliente, 30), qrCampo(area, 80)].join('|');
-    qrs.push({ texto, rotulo: nome.length > 40 ? nome.slice(0, 38) + '…' : nome, nome, area });
+    qrs.push({ texto: produtoSemQr(nome) ? null : texto, rotulo: nome.length > 40 ? nome.slice(0, 38) + '…' : nome, nome, area });
   }
   return qrs;
 }
