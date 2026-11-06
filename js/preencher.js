@@ -700,6 +700,13 @@ async function carregarPropostaEditavel(proposta) {
       const inputPrevisaoEntrega = bloco.querySelector(`input[name="previsaoEntrega"]`);
       if (inputPrevisaoEntrega) inputPrevisaoEntrega.value = grupo.parametros?.previsaoEntrega || "";
 
+      // Marcador "Contar o prazo a partir da assinatura do projeto" (aba Prazos)
+      const usarRefAssinatura = grupo.parametros?.usarAssinaturaProjetoRef === "sim";
+      const hidRefAssinatura = bloco.querySelector(`input[name="usarAssinaturaProjetoRef"]`);
+      if (hidRefAssinatura) hidRefAssinatura.value = usarRefAssinatura ? "sim" : "nao";
+      const chkRefAssinatura = bloco.querySelector(`.chk-ref-assinatura-projeto`);
+      if (chkRefAssinatura) chkRefAssinatura.checked = usarRefAssinatura;
+
       const tbody = bloco.querySelector(`#tabela-${idSuffix} tbody`);
 
       const resumoEl = document.getElementById(`resumo-${idSuffix}`);

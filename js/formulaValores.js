@@ -408,7 +408,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
 // 🔁 Ativa o recálculo automático ao alterar inputs financeiros (exclui campos informativos)
 const _CAMPOS_NAO_FINANCEIROS = new Set([
-  'previsaoEntrega', 'informacoesProduto', 'ambiente'
+  'previsaoEntrega', 'informacoesProduto', 'ambiente', 'usarAssinaturaProjetoRef'
 ]);
 document.addEventListener('input', function (e) {
   const input = e.target;
@@ -638,6 +638,14 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
     <!-- Datas de referência por item -->
     <div class="col-12">
       <label class="form-label fw-semibold mb-2" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#555;">Datas de Referência</label>
+      <!-- Marcador: o prazo deste item conta a partir da assinatura do cliente no projeto (salvo em parametros.usarAssinaturaProjetoRef = "sim"/"nao") -->
+      <label class="d-flex align-items-start gap-2 mb-2 px-2 py-2" style="font-size:11.5px;color:#1e3a5f;background:#eef5ff;border:1px solid #cfe0f7;border-radius:6px;cursor:pointer;line-height:1.35;">
+        <input type="checkbox" class="form-check-input mt-0 chk-ref-assinatura-projeto" style="flex:none;"
+          onchange="this.parentElement.querySelector('input[name=usarAssinaturaProjetoRef]').value = this.checked ? 'sim' : 'nao'">
+        <span><strong>Contar o prazo a partir da assinatura do projeto</strong><br>
+          <span style="font-size:10.5px;color:#5b6b80;">Usa a data de assinatura do cliente no projeto como referência para a data de entrega deste item.</span></span>
+        <input type="hidden" name="usarAssinaturaProjetoRef" value="nao">
+      </label>
       <div class="d-flex flex-column gap-2">
 
         <div>
