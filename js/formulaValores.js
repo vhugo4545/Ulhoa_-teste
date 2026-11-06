@@ -510,6 +510,16 @@ const ordemParametros = [
 // ----------------------------
 // Função principal
 // ----------------------------
+// Data "Assinatura do cliente no projeto" vem do campo "Assinatura de Projeto" da Kommo (bloqueioKommo.js)
+window.travarAssinaturaProjetoKommo = function (inp) {
+  if (!inp || window._kommoAssinaturaProjeto === undefined) return;
+  inp.value = window._kommoAssinaturaProjeto || "";
+  inp.dataset.valorOriginal = inp.value;
+  inp.readOnly = true;
+  inp.style.background = "#f3f3f3";
+  inp.title = 'Vem do campo "Assinatura de Projeto" da Kommo';
+};
+
 function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
   const idSuffix = `bloco-${blocoIndex++}`;
   const container = document.getElementById("blocosProdutosContainer");
@@ -651,7 +661,7 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
         <div>
           <label style="font-size:11px;color:#555;display:block;margin-bottom:2px;">
             Assinatura do cliente no projeto
-            <span style="font-size:10px;color:#888;font-weight:400;">(Clicksign / Kommo)</span>
+            <span style="font-size:10px;color:#888;font-weight:400;">(Kommo: Assinatura de Projeto)</span>
           </label>
           <input type="date" name="dataAssinaturaCliente"
             class="form-control form-control-sm">
@@ -747,6 +757,7 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
   `;
 
   container.appendChild(bloco);
+  window.travarAssinaturaProjetoKommo(bloco.querySelector('input[name="dataAssinaturaCliente"]'));
 
   const tbody = bloco.querySelector("tbody");
   if (tbody) {
