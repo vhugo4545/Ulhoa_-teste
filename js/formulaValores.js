@@ -22,7 +22,7 @@ function preencherInformacoesProduto(botao, texto, personalizado = false) {
 // Cada cartão mostra: data + prazo em dias úteis = data de entrega (sem fins de semana e feriados).
 const REFS_PRAZO = [
   { ref: "projeto",       campo: "dataAssinaturaCliente",   curto: "Assinatura do projeto",
-    desc: "Assinatura do cliente no projeto (Kommo: Assinatura Projeto)",            chave: "assinatura do cliente no projeto" },
+    desc: "Assinatura do cliente no projeto (digitada em cada item)",                chave: "assinatura do cliente no projeto" },
   { ref: "instalacao",    campo: "dataInstalacaoEstrutura", curto: "Instalação da estrutura",
     desc: "Instalação da estrutura finalizada (Sistema de Produção)",                chave: "instalacao da estrutura" },
   { ref: "vidros",        campo: "dataPagamentoVidros",     curto: "Último pagamento 100%",
@@ -685,17 +685,6 @@ const ordemParametros = [
 // ----------------------------
 // Função principal
 // ----------------------------
-// Data "Assinatura do cliente no projeto" vem do campo "Assinatura de Projeto" da Kommo (bloqueioKommo.js)
-window.travarAssinaturaProjetoKommo = function (inp) {
-  if (!inp || window._kommoAssinaturaProjeto === undefined) return;
-  inp.value = window._kommoAssinaturaProjeto || "";
-  inp.dataset.valorOriginal = inp.value;
-  inp.readOnly = true;
-  inp.style.background = "#f3f3f3";
-  inp.title = 'Vem do campo "Assinatura Projeto" da Kommo';
-  atualizarPrazoBloco(inp.closest(".main-container"));
-};
-
 function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
   const idSuffix = `bloco-${blocoIndex++}`;
   const container = document.getElementById("blocosProdutosContainer");
@@ -882,7 +871,6 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
   `;
 
   container.appendChild(bloco);
-  window.travarAssinaturaProjetoKommo(bloco.querySelector('input[name="dataAssinaturaCliente"]'));
   atualizarPrazoBloco(bloco);
 
   const tbody = bloco.querySelector("tbody");

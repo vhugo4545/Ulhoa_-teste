@@ -700,9 +700,6 @@ async function carregarPropostaEditavel(proposta) {
       const inputPrevisaoEntrega = bloco.querySelector(`input[name="previsaoEntrega"]`);
       if (inputPrevisaoEntrega) inputPrevisaoEntrega.value = grupo.parametros?.previsaoEntrega || "";
 
-      // Assinatura do cliente no projeto: se a Kommo já respondeu, vale o "Assinatura de Projeto" dela
-      window.travarAssinaturaProjetoKommo?.(bloco.querySelector(`input[name="dataAssinaturaCliente"]`));
-
       // Referência do prazo (aba Prazos): a salva; sem ela, deduz pela condição do item
       window.aplicarRefPrazoSalva?.(bloco, grupo.parametros || {});
 

@@ -110,12 +110,6 @@ function verificarBloqueioKommo() {
     window.atualizarPrazosPDV?.();
   }
 
-  // "Assinatura do cliente no projeto" (aba Prazos de cada grupo) = campo "Assinatura de Projeto" da Kommo.
-  // Fica só leitura em todos os grupos; preencher.js e criarBlocoDeProposta usam window._kommoAssinaturaProjeto.
-  function aplicarAssinaturaProjeto(data) {
-    window._kommoAssinaturaProjeto = data;
-    document.querySelectorAll('.tab-pane input[name="dataAssinaturaCliente"]').forEach(inp => window.travarAssinaturaProjetoKommo?.(inp));
-  }
 
   function checar() {
     const cfgServer = window.CFgAPI?.obter()?.travamentoKommo;
@@ -150,7 +144,6 @@ function verificarBloqueioKommo() {
       console.log("[kommo-lock] Resposta do lead:", lead);
 
       if ("contratoAssinado" in lead) aplicarContratoAssinado(lead.contratoAssinado || "");
-      if ("assinaturaProjeto" in lead) aplicarAssinaturaProjeto(lead.assinaturaProjeto || "");
 
       const statusId = String(lead.status_id);
       const nomeEtapa = lead.nomeEtapa || statusId;
