@@ -9,7 +9,11 @@ function preencherInformacoesProduto(botao, texto, personalizado = false) {
   campo.dispatchEvent(new Event("input", { bubbles: true }));
   campo.dispatchEvent(new Event("change", { bubbles: true }));
 
-  if (personalizado) campo.focus();
+  // Personalizado: o prazo conta da "Data personalizada" (a pessoa escolhe a data)
+  if (personalizado) {
+    definirRefPrazo(botao.closest(".main-container"), "personalizado");
+    campo.focus();
+  }
 }
 
 
@@ -17,28 +21,30 @@ function preencherInformacoesProduto(botao, texto, personalizado = false) {
 // Um marcador por condição; só um fica marcado. Marca sozinho conforme a condição escolhida.
 // Cada cartão mostra: data + prazo em dias úteis = data de entrega (sem fins de semana e feriados).
 const REFS_PRAZO = [
-  { ref: "projeto",    campo: "dataAssinaturaCliente",   titulo: "Contar o prazo a partir da assinatura do projeto",
+  { ref: "projeto",       campo: "dataAssinaturaCliente",   curto: "Assinatura do projeto",
     desc: "Assinatura do cliente no projeto (Kommo: Assinatura Projeto)",            chave: "assinatura do cliente no projeto" },
-  { ref: "instalacao", campo: "dataInstalacaoEstrutura", titulo: "Contar o prazo a partir da instalação da estrutura",
+  { ref: "instalacao",    campo: "dataInstalacaoEstrutura", curto: "Instalação da estrutura",
     desc: "Instalação da estrutura finalizada (Sistema de Produção)",                chave: "instalacao da estrutura" },
-  { ref: "vidros",     campo: "dataPagamentoVidros",     titulo: "Contar o prazo a partir do último pagamento (100% pago)",
-    desc: "Pagamento do(s) vidro(s) / faturamento direto (Produção / Compras)", chave: "vidro" },
-  { ref: "fornecedor", campo: "dataLiberacaoFornecedor", titulo: "Contar o prazo a partir da liberação do fornecedor",
-    desc: "Liberação/entrega do material pelo fornecedor (Produção / Compras)",              chave: "fornecedor" },
-  { ref: "contrato",   campo: "dataPedidoAssinado",      titulo: "Contar o prazo a partir da assinatura do contrato",
+  { ref: "vidros",        campo: "dataPagamentoVidros",     curto: "Último pagamento 100%",
+    desc: "Pagamento do(s) vidro(s) / faturamento direto (Produção / Compras)",      chave: "vidro" },
+  { ref: "fornecedor",    campo: "dataLiberacaoFornecedor", curto: "Liberação do fornecedor",
+    desc: "Liberação/entrega do material pelo fornecedor (Produção / Compras)",      chave: "fornecedor" },
+  { ref: "contrato",      campo: "dataPedidoAssinado",      curto: "Assinatura do contrato",
     desc: "Contrato Assinado da Kommo (igual para todos os itens)",                  chave: "assinatura do contrato" },
+  { ref: "personalizado", campo: "dataPersonalizada",       curto: "Data personalizada",
+    desc: "Escolha a data de partida do prazo (condição personalizada)",             chave: null },
 ];
 
+// Uma linha por opção: marcador + nome + data. A entrega aparece uma vez, abaixo, para a opção marcada.
 function _htmlCardsRefPrazo() {
   const contrato = document.getElementById("dataPedidoAssinado")?.value || "";
   return REFS_PRAZO.map(r => `
-        <div class="ref-prazo-card" data-ref="${r.ref}" style="border:1px solid #e2e8f0;border-radius:6px;padding:7px 8px;background:#fff;">
-          <label class="d-flex align-items-start gap-2 mb-1" style="font-size:11.5px;color:#1e3a5f;cursor:pointer;line-height:1.35;">
+        <div class="ref-prazo-card d-flex align-items-center gap-2" data-ref="${r.ref}" title="${r.desc}" style="border:1px solid #e2e8f0;border-radius:6px;padding:3px 6px;background:#fff;">
+          <label class="d-flex align-items-center gap-2 mb-0 flex-grow-1" style="font-size:11.5px;color:#1e3a5f;cursor:pointer;min-width:0;">
             <input type="checkbox" class="form-check-input mt-0 chk-ref-prazo" data-ref="${r.ref}" style="flex:none;">
-            <span><strong>${r.titulo}</strong><br><span style="font-size:10.5px;color:#5b6b80;">${r.desc}</span></span>
+            <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.curto}</span>
           </label>
-          <input type="date" name="${r.campo}" class="form-control form-control-sm"${r.ref === "contrato" ? ` readonly style="background:#f3f3f3;" value="${contrato}"` : ""}>
-          <div class="ref-prazo-final" style="font-size:10.5px;color:#64748b;margin-top:4px;"></div>
+          <input type="date" name="${r.campo}" class="form-control form-control-sm" style="width:128px;flex:none;padding:1px 6px;font-size:11.5px;${r.ref === "contrato" ? "background:#f3f3f3;" : ""}"${r.ref === "contrato" ? ` readonly value="${contrato}"` : ""}>
         </div>`).join("");
 }
 
@@ -47,7 +53,7 @@ const _semAcentoPrazo = t => String(t || "").normalize("NFD").replace(/[\u0300-\
 function refPrazoPorTexto(texto) {
   const t = _semAcentoPrazo(texto);
   if (!t.trim()) return "";
-  return REFS_PRAZO.find(r => t.includes(r.chave))?.ref || "";
+  return REFS_PRAZO.find(r => r.chave && t.includes(r.chave))?.ref || "";
 }
 
 // Feriados (todos os pedidos) + dias sem trabalho deste pedido, cadastrados no app de produção
@@ -78,27 +84,30 @@ function _somarDiasUteisPDV(iso, dias) {
   return _isoPrazoPDV(d);
 }
 
-// Redesenha os cartões de um grupo: marcador, destaque e data de entrega de cada opção
+// Redesenha as linhas de um grupo (marcador e destaque) e a entrega da opção marcada
 function atualizarPrazoBloco(bloco) {
   const wrap = bloco?.querySelector(".ref-prazo-wrap");
   if (!wrap) return;
   const dias = parseInt(bloco.querySelector('input[name="previsaoEntrega"]')?.value, 10);
   const sel = wrap.querySelector('input[name="referenciaPrazo"]')?.value || "";
+  let dataSel = "";
   wrap.querySelectorAll(".ref-prazo-card").forEach(card => {
     const on = card.dataset.ref === sel;
     const chk = card.querySelector(".chk-ref-prazo");
     if (chk) chk.checked = on;
     card.style.borderColor = on ? "#93c5fd" : "#e2e8f0";
     card.style.background = on ? "#eef5ff" : "#fff";
-    const data = card.querySelector('input[type="date"]')?.value || "";
-    const out = card.querySelector(".ref-prazo-final");
-    if (!out) return;
-    let txt;
-    if (!data) txt = "Sem data ainda";
-    else if (!(dias > 0)) txt = `${_fmtPrazoPDV(data)} · informe o prazo (dias úteis)`;
-    else txt = `${_fmtPrazoPDV(data)} + ${dias} dias úteis = <b style="color:${on ? "#15803d" : "#334155"};">${_fmtPrazoPDV(_somarDiasUteisPDV(data, dias))}</b>`;
-    out.innerHTML = (on ? `<b style="color:#1d4ed8;">Entrega:</b> ` : "") + txt;
+    if (on) dataSel = card.querySelector('input[type="date"]')?.value || "";
   });
+  const out = wrap.querySelector(".ref-prazo-final");
+  if (!out) return;
+  const ref = REFS_PRAZO.find(r => r.ref === sel);
+  let txt;
+  if (!ref) txt = `<span style="color:#b45309;">Marque de qual data o prazo conta.</span>`;
+  else if (!dataSel) txt = `<span style="color:#b45309;">Preencha a data: ${ref.curto}.</span>`;
+  else if (!(dias > 0)) txt = `${_fmtPrazoPDV(dataSel)} · <span style="color:#b45309;">informe o prazo (dias úteis).</span>`;
+  else txt = `${_fmtPrazoPDV(dataSel)} + ${dias} dias úteis = <b style="color:#15803d;">${_fmtPrazoPDV(_somarDiasUteisPDV(dataSel, dias))}</b>`;
+  out.innerHTML = `<b style="color:#1d4ed8;">Entrega:</b> ` + txt;
 }
 window.atualizarPrazosPDV = function () {
   document.querySelectorAll(".main-container").forEach(atualizarPrazoBloco);
@@ -773,15 +782,15 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
     <div class="col-12"><hr class="my-1" style="border-color:#e0e0e0;"></div>
 
     <!-- Datas de referência por item: um marcador por condição (só um fica marcado; marca sozinho pela condição).
-         Salvo em parametros.referenciaPrazo = contrato | projeto | instalacao | vidros | fornecedor -->
+         Salvo em parametros.referenciaPrazo = contrato | projeto | instalacao | vidros | fornecedor | personalizado -->
     <div class="col-12 ref-prazo-wrap">
-      <label class="form-label fw-semibold mb-1" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#555;">Datas de Referência</label>
-      <div style="font-size:10.5px;color:#64748b;margin-bottom:6px;line-height:1.35;">Marque de qual data o prazo conta. Entrega = data marcada + prazo em dias úteis (sem fins de semana e feriados).</div>
+      <label class="form-label fw-semibold mb-1" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#555;">Datas de Referência <span style="text-transform:none;letter-spacing:0;font-weight:400;color:#64748b;">· marque de qual data o prazo conta</span></label>
       <input type="hidden" name="referenciaPrazo" value="">
       <input type="hidden" name="usarAssinaturaProjetoRef" value="nao">
-      <div class="d-flex flex-column gap-2">
+      <div class="d-flex flex-column" style="gap:4px;">
         ${_htmlCardsRefPrazo()}
       </div>
+      <div class="ref-prazo-final" style="font-size:11px;color:#334155;margin-top:6px;" title="Data marcada + prazo em dias úteis (sem fins de semana e feriados)"></div>
     </div>
 
   </form>
