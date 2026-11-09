@@ -58,13 +58,17 @@ function refPrazoPorTexto(texto) {
 
 // Feriados (todos os pedidos) + dias sem trabalho deste pedido, cadastrados no app de produção
 window._diasNaoUteisPDV = new Set();
+window._feriadosPDV = new Set();   // feriados de todos os pedidos
+window._diasPedidoPDV = new Set(); // dias sem trabalho só deste pedido
 (function carregarDiasNaoUteisPDV() {
   const id = new URLSearchParams(location.search).get("id") || "";
   fetch("https://app-producao-b843a894d7ea.herokuapp.com/api/feriados/publico?pedido=" + encodeURIComponent(id))
     .then(r => r.ok ? r.json() : null)
     .then(d => {
       if (!d) return;
-      window._diasNaoUteisPDV = new Set([...(d.feriados || []), ...(d.pedido || [])]);
+      window._feriadosPDV = new Set(d.feriados || []);
+      window._diasPedidoPDV = new Set(d.pedido || []);
+      window._diasNaoUteisPDV = new Set([...window._feriadosPDV, ...window._diasPedidoPDV]);
       window.atualizarPrazosPDV();
     })
     .catch(() => {});
@@ -72,19 +76,27 @@ window._diasNaoUteisPDV = new Set();
 
 function _isoPrazoPDV(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 function _fmtPrazoPDV(iso) { const [a, m, d] = String(iso).split("-"); return d && m && a ? `${d}/${m}/${a}` : ""; }
-function _somarDiasUteisPDV(iso, dias) {
+// Soma dias úteis e conta o que foi pulado (para explicar a data na tela)
+function _detalheDiasUteisPDV(iso, dias) {
   const d = new Date(iso + "T12:00:00");
-  if (isNaN(d)) return "";
+  const det = { fim: "", fds: 0, feriados: [], pedido: [] };
+  if (isNaN(d)) return det;
   let c = dias;
   while (c > 0) {
     d.setDate(d.getDate() + 1);
-    const dw = d.getDay();
-    if (dw !== 0 && dw !== 6 && !window._diasNaoUteisPDV.has(_isoPrazoPDV(d))) c--;
+    const dw = d.getDay(), dia = _isoPrazoPDV(d);
+    if (dw === 0 || dw === 6) det.fds++;
+    else if (window._feriadosPDV.has(dia)) det.feriados.push(dia);
+    else if (window._diasPedidoPDV.has(dia)) det.pedido.push(dia);
+    else c--;
   }
-  return _isoPrazoPDV(d);
+  det.fim = _isoPrazoPDV(d);
+  return det;
 }
+function _somarDiasUteisPDV(iso, dias) { return _detalheDiasUteisPDV(iso, dias).fim; }
 
-// Redesenha as linhas de um grupo (marcador e destaque) e a entrega da opção marcada
+// Redesenha as linhas de um grupo (marcador e destaque), a entrega da opção marcada
+// e a sugestão quando o marcador não bate com a condição (só sugere, não trava)
 function atualizarPrazoBloco(bloco) {
   const wrap = bloco?.querySelector(".ref-prazo-wrap");
   if (!wrap) return;
@@ -102,12 +114,33 @@ function atualizarPrazoBloco(bloco) {
   const out = wrap.querySelector(".ref-prazo-final");
   if (!out) return;
   const ref = REFS_PRAZO.find(r => r.ref === sel);
-  let txt;
+  const dm = iso => _fmtPrazoPDV(iso).slice(0, 5);
+  const lista = arr => arr.length > 1 ? arr.slice(0, -1).map(dm).join(", ") + " e " + dm(arr[arr.length - 1]) : dm(arr[0]);
+  let txt, detalhe = "";
   if (!ref) txt = `<span style="color:#b45309;">Marque de qual data o prazo conta.</span>`;
   else if (!dataSel) txt = `<span style="color:#b45309;">Preencha a data: ${ref.curto}.</span>`;
   else if (!(dias > 0)) txt = `${_fmtPrazoPDV(dataSel)} · <span style="color:#b45309;">informe o prazo (dias úteis).</span>`;
-  else txt = `${_fmtPrazoPDV(dataSel)} + ${dias} dias úteis = <b style="color:#15803d;">${_fmtPrazoPDV(_somarDiasUteisPDV(dataSel, dias))}</b>`;
-  out.innerHTML = `<b style="color:#1d4ed8;">Entrega:</b> ` + txt;
+  else {
+    const det = _detalheDiasUteisPDV(dataSel, dias);
+    txt = `${_fmtPrazoPDV(dataSel)} + ${dias} dias úteis = <b style="color:#15803d;">${_fmtPrazoPDV(det.fim)}</b>`;
+    const partes = [];
+    if (det.fds) partes.push(`${det.fds} dias de fim de semana`);
+    if (det.feriados.length) partes.push(`feriado${det.feriados.length > 1 ? "s" : ""} ${lista(det.feriados)}`);
+    if (det.pedido.length) partes.push(`dia${det.pedido.length > 1 ? "s" : ""} sem trabalho deste pedido ${lista(det.pedido)}`);
+    detalhe = partes.length ? `<div style="font-size:10.5px;color:#64748b;margin-top:2px;">Não contou: ${partes.join(" · ")}.</div>` : "";
+  }
+  // Sugestão: a condição escolhida pede outra data
+  const cond = bloco.querySelector('textarea[name="informacoesProduto"]')?.value || "";
+  const refCond = refPrazoPorTexto(cond) || (cond.trim() ? "personalizado" : "");
+  let sugestao = "";
+  if (refCond && refCond !== sel) {
+    const r = REFS_PRAZO.find(x => x.ref === refCond);
+    sugestao = `<div style="font-size:10.5px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:5px;padding:4px 6px;margin-top:4px;">
+      Sugestão: a condição ${refCond === "personalizado" ? "é personalizada" : `é «${r.curto}»`}, mas está marcado «${ref ? ref.curto : "nenhum"}».
+      Marque «${r.curto}» e preencha a data dela.
+      <a href="#" class="ref-prazo-usar" data-ref="${refCond}" style="font-weight:700;">Marcar «${r.curto}»</a></div>`;
+  }
+  out.innerHTML = `<b style="color:#1d4ed8;">Entrega:</b> ` + txt + detalhe + sugestao;
 }
 window.atualizarPrazosPDV = function () {
   document.querySelectorAll(".main-container").forEach(atualizarPrazoBloco);
@@ -136,10 +169,17 @@ document.addEventListener("change", e => {
   if (t.classList.contains("chk-ref-prazo")) { definirRefPrazo(bloco, t.checked ? t.dataset.ref : ""); return; }
   if (t.matches('textarea[name="informacoesProduto"]')) {
     const ref = refPrazoPorTexto(t.value);
-    if (ref) definirRefPrazo(bloco, ref);
+    if (ref) definirRefPrazo(bloco, ref); else atualizarPrazoBloco(bloco);
     return;
   }
   if (t.name === "previsaoEntrega" || t.closest(".ref-prazo-wrap")) atualizarPrazoBloco(bloco);
+});
+// "Marcar «...»" da sugestão
+document.addEventListener("click", e => {
+  const a = e.target?.closest?.(".ref-prazo-usar");
+  if (!a) return;
+  e.preventDefault();
+  definirRefPrazo(a.closest(".main-container"), a.dataset.ref);
 });
 document.addEventListener("input", e => {
   const t = e.target;
