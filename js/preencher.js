@@ -703,12 +703,8 @@ async function carregarPropostaEditavel(proposta) {
       // Assinatura do cliente no projeto: se a Kommo já respondeu, vale o "Assinatura de Projeto" dela
       window.travarAssinaturaProjetoKommo?.(bloco.querySelector(`input[name="dataAssinaturaCliente"]`));
 
-      // Marcador "Contar o prazo a partir da assinatura do projeto" (aba Prazos)
-      const usarRefAssinatura = grupo.parametros?.usarAssinaturaProjetoRef === "sim";
-      const hidRefAssinatura = bloco.querySelector(`input[name="usarAssinaturaProjetoRef"]`);
-      if (hidRefAssinatura) hidRefAssinatura.value = usarRefAssinatura ? "sim" : "nao";
-      const chkRefAssinatura = bloco.querySelector(`.chk-ref-assinatura-projeto`);
-      if (chkRefAssinatura) chkRefAssinatura.checked = usarRefAssinatura;
+      // Referência do prazo (aba Prazos): a salva; sem ela, deduz pela condição do item
+      window.aplicarRefPrazoSalva?.(bloco, grupo.parametros || {});
 
       const tbody = bloco.querySelector(`#tabela-${idSuffix} tbody`);
 

@@ -13,6 +13,132 @@ function preencherInformacoesProduto(botao, texto, personalizado = false) {
 }
 
 
+// ── Referência do prazo (aba Prazos) ────────────────────────────────────────
+// Um marcador por condição; só um fica marcado. Marca sozinho conforme a condição escolhida.
+// Cada cartão mostra: data + prazo em dias úteis = data de entrega (sem fins de semana e feriados).
+const REFS_PRAZO = [
+  { ref: "projeto",    campo: "dataAssinaturaCliente",   titulo: "Contar o prazo a partir da assinatura do projeto",
+    desc: "Assinatura do cliente no projeto (Kommo: Assinatura Projeto)",            chave: "assinatura do cliente no projeto" },
+  { ref: "instalacao", campo: "dataInstalacaoEstrutura", titulo: "Contar o prazo a partir da instalação da estrutura",
+    desc: "Instalação da estrutura finalizada (Sistema de Produção)",                chave: "instalacao da estrutura" },
+  { ref: "vidros",     campo: "dataPagamentoVidros",     titulo: "Contar o prazo a partir do último pagamento (100% pago)",
+    desc: "Pagamento do(s) vidro(s) / faturamento direto (Produção / Compras)", chave: "vidro" },
+  { ref: "fornecedor", campo: "dataLiberacaoFornecedor", titulo: "Contar o prazo a partir da liberação do fornecedor",
+    desc: "Liberação/entrega do material pelo fornecedor (Produção / Compras)",              chave: "fornecedor" },
+  { ref: "contrato",   campo: "dataPedidoAssinado",      titulo: "Contar o prazo a partir da assinatura do contrato",
+    desc: "Contrato Assinado da Kommo (igual para todos os itens)",                  chave: "assinatura do contrato" },
+];
+
+function _htmlCardsRefPrazo() {
+  const contrato = document.getElementById("dataPedidoAssinado")?.value || "";
+  return REFS_PRAZO.map(r => `
+        <div class="ref-prazo-card" data-ref="${r.ref}" style="border:1px solid #e2e8f0;border-radius:6px;padding:7px 8px;background:#fff;">
+          <label class="d-flex align-items-start gap-2 mb-1" style="font-size:11.5px;color:#1e3a5f;cursor:pointer;line-height:1.35;">
+            <input type="checkbox" class="form-check-input mt-0 chk-ref-prazo" data-ref="${r.ref}" style="flex:none;">
+            <span><strong>${r.titulo}</strong><br><span style="font-size:10.5px;color:#5b6b80;">${r.desc}</span></span>
+          </label>
+          <input type="date" name="${r.campo}" class="form-control form-control-sm"${r.ref === "contrato" ? ` readonly style="background:#f3f3f3;" value="${contrato}"` : ""}>
+          <div class="ref-prazo-final" style="font-size:10.5px;color:#64748b;margin-top:4px;"></div>
+        </div>`).join("");
+}
+
+const _semAcentoPrazo = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+// Condição (texto) → referência; "" quando o texto não é de nenhuma opção (ex.: personalizado)
+function refPrazoPorTexto(texto) {
+  const t = _semAcentoPrazo(texto);
+  if (!t.trim()) return "";
+  return REFS_PRAZO.find(r => t.includes(r.chave))?.ref || "";
+}
+
+// Feriados (todos os pedidos) + dias sem trabalho deste pedido, cadastrados no app de produção
+window._diasNaoUteisPDV = new Set();
+(function carregarDiasNaoUteisPDV() {
+  const id = new URLSearchParams(location.search).get("id") || "";
+  fetch("https://app-producao-b843a894d7ea.herokuapp.com/api/feriados/publico?pedido=" + encodeURIComponent(id))
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      if (!d) return;
+      window._diasNaoUteisPDV = new Set([...(d.feriados || []), ...(d.pedido || [])]);
+      window.atualizarPrazosPDV();
+    })
+    .catch(() => {});
+})();
+
+function _isoPrazoPDV(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function _fmtPrazoPDV(iso) { const [a, m, d] = String(iso).split("-"); return d && m && a ? `${d}/${m}/${a}` : ""; }
+function _somarDiasUteisPDV(iso, dias) {
+  const d = new Date(iso + "T12:00:00");
+  if (isNaN(d)) return "";
+  let c = dias;
+  while (c > 0) {
+    d.setDate(d.getDate() + 1);
+    const dw = d.getDay();
+    if (dw !== 0 && dw !== 6 && !window._diasNaoUteisPDV.has(_isoPrazoPDV(d))) c--;
+  }
+  return _isoPrazoPDV(d);
+}
+
+// Redesenha os cartões de um grupo: marcador, destaque e data de entrega de cada opção
+function atualizarPrazoBloco(bloco) {
+  const wrap = bloco?.querySelector(".ref-prazo-wrap");
+  if (!wrap) return;
+  const dias = parseInt(bloco.querySelector('input[name="previsaoEntrega"]')?.value, 10);
+  const sel = wrap.querySelector('input[name="referenciaPrazo"]')?.value || "";
+  wrap.querySelectorAll(".ref-prazo-card").forEach(card => {
+    const on = card.dataset.ref === sel;
+    const chk = card.querySelector(".chk-ref-prazo");
+    if (chk) chk.checked = on;
+    card.style.borderColor = on ? "#93c5fd" : "#e2e8f0";
+    card.style.background = on ? "#eef5ff" : "#fff";
+    const data = card.querySelector('input[type="date"]')?.value || "";
+    const out = card.querySelector(".ref-prazo-final");
+    if (!out) return;
+    let txt;
+    if (!data) txt = "Sem data ainda";
+    else if (!(dias > 0)) txt = `${_fmtPrazoPDV(data)} · informe o prazo (dias úteis)`;
+    else txt = `${_fmtPrazoPDV(data)} + ${dias} dias úteis = <b style="color:${on ? "#15803d" : "#334155"};">${_fmtPrazoPDV(_somarDiasUteisPDV(data, dias))}</b>`;
+    out.innerHTML = (on ? `<b style="color:#1d4ed8;">Entrega:</b> ` : "") + txt;
+  });
+}
+window.atualizarPrazosPDV = function () {
+  document.querySelectorAll(".main-container").forEach(atualizarPrazoBloco);
+};
+
+// Marca a referência do grupo ("" = nenhuma; o app de produção usa o contrato)
+function definirRefPrazo(bloco, ref) {
+  const hid = bloco?.querySelector('input[name="referenciaPrazo"]');
+  if (!hid) return;
+  hid.value = ref || "";
+  const hidProj = bloco.querySelector('input[name="usarAssinaturaProjetoRef"]');
+  if (hidProj) hidProj.value = ref === "projeto" ? "sim" : "nao";
+  atualizarPrazoBloco(bloco);
+}
+// Ao abrir a proposta: o que foi salvo; sem nada salvo, deduz pela condição do item
+window.aplicarRefPrazoSalva = function (bloco, parametros) {
+  const p = parametros || {};
+  const ref = p.referenciaPrazo || (p.usarAssinaturaProjetoRef === "sim" ? "projeto" : "") || refPrazoPorTexto(p.informacoesProduto);
+  definirRefPrazo(bloco, ref);
+};
+
+document.addEventListener("change", e => {
+  const t = e.target;
+  const bloco = t?.closest?.(".main-container");
+  if (!bloco) return;
+  if (t.classList.contains("chk-ref-prazo")) { definirRefPrazo(bloco, t.checked ? t.dataset.ref : ""); return; }
+  if (t.matches('textarea[name="informacoesProduto"]')) {
+    const ref = refPrazoPorTexto(t.value);
+    if (ref) definirRefPrazo(bloco, ref);
+    return;
+  }
+  if (t.name === "previsaoEntrega" || t.closest(".ref-prazo-wrap")) atualizarPrazoBloco(bloco);
+});
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t?.type === "checkbox") return; // o marcador é tratado no "change"
+  if (t?.name === "previsaoEntrega" || t?.closest?.(".ref-prazo-wrap")) atualizarPrazoBloco(t.closest(".main-container"));
+});
+
+
 function preencherValoresFinanceiros(blocoId) {
 
   const bloco = document.getElementById(blocoId);
@@ -408,7 +534,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
 // 🔁 Ativa o recálculo automático ao alterar inputs financeiros (exclui campos informativos)
 const _CAMPOS_NAO_FINANCEIROS = new Set([
-  'previsaoEntrega', 'informacoesProduto', 'ambiente', 'usarAssinaturaProjetoRef'
+  'previsaoEntrega', 'informacoesProduto', 'ambiente', 'usarAssinaturaProjetoRef', 'referenciaPrazo'
 ]);
 document.addEventListener('input', function (e) {
   const input = e.target;
@@ -517,7 +643,8 @@ window.travarAssinaturaProjetoKommo = function (inp) {
   inp.dataset.valorOriginal = inp.value;
   inp.readOnly = true;
   inp.style.background = "#f3f3f3";
-  inp.title = 'Vem do campo "Assinatura de Projeto" da Kommo';
+  inp.title = 'Vem do campo "Assinatura Projeto" da Kommo';
+  atualizarPrazoBloco(inp.closest(".main-container"));
 };
 
 function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
@@ -645,66 +772,15 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
     <!-- Separador -->
     <div class="col-12"><hr class="my-1" style="border-color:#e0e0e0;"></div>
 
-    <!-- Datas de referência por item -->
-    <div class="col-12">
-      <label class="form-label fw-semibold mb-2" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#555;">Datas de Referência</label>
-      <!-- Marcador: o prazo deste item conta a partir da assinatura do cliente no projeto (salvo em parametros.usarAssinaturaProjetoRef = "sim"/"nao") -->
-      <label class="d-flex align-items-start gap-2 mb-2 px-2 py-2" style="font-size:11.5px;color:#1e3a5f;background:#eef5ff;border:1px solid #cfe0f7;border-radius:6px;cursor:pointer;line-height:1.35;">
-        <input type="checkbox" class="form-check-input mt-0 chk-ref-assinatura-projeto" style="flex:none;"
-          onchange="this.parentElement.querySelector('input[name=usarAssinaturaProjetoRef]').value = this.checked ? 'sim' : 'nao'">
-        <span><strong>Contar o prazo a partir da assinatura do projeto</strong><br>
-          <span style="font-size:10.5px;color:#5b6b80;">Usa a data de assinatura do cliente no projeto como referência para a data de entrega deste item.</span></span>
-        <input type="hidden" name="usarAssinaturaProjetoRef" value="nao">
-      </label>
+    <!-- Datas de referência por item: um marcador por condição (só um fica marcado; marca sozinho pela condição).
+         Salvo em parametros.referenciaPrazo = contrato | projeto | instalacao | vidros | fornecedor -->
+    <div class="col-12 ref-prazo-wrap">
+      <label class="form-label fw-semibold mb-1" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#555;">Datas de Referência</label>
+      <div style="font-size:10.5px;color:#64748b;margin-bottom:6px;line-height:1.35;">Marque de qual data o prazo conta. Entrega = data marcada + prazo em dias úteis (sem fins de semana e feriados).</div>
+      <input type="hidden" name="referenciaPrazo" value="">
+      <input type="hidden" name="usarAssinaturaProjetoRef" value="nao">
       <div class="d-flex flex-column gap-2">
-
-        <div>
-          <label style="font-size:11px;color:#555;display:block;margin-bottom:2px;">
-            Assinatura do cliente no projeto
-            <span style="font-size:10px;color:#888;font-weight:400;">(Kommo: Assinatura de Projeto)</span>
-          </label>
-          <input type="date" name="dataAssinaturaCliente"
-            class="form-control form-control-sm">
-        </div>
-
-        <div>
-          <label style="font-size:11px;color:#555;display:block;margin-bottom:2px;">
-            Instalação da estrutura finalizada
-            <span style="font-size:10px;color:#888;font-weight:400;">(Sistema de Produção)</span>
-          </label>
-          <input type="date" name="dataInstalacaoEstrutura"
-            class="form-control form-control-sm">
-        </div>
-
-        <div>
-          <label style="font-size:11px;color:#555;display:block;margin-bottom:2px;">
-            Último pagamento (100% pago) do faturamento direto
-            <span style="font-size:10px;color:#888;font-weight:400;">(Produção / Compras)</span>
-          </label>
-          <input type="date" name="dataPagamentoVidros"
-            class="form-control form-control-sm">
-        </div>
-
-        <div>
-          <label style="font-size:11px;color:#555;display:block;margin-bottom:2px;">
-            Liberação do material pelo fornecedor
-            <span style="font-size:10px;color:#888;font-weight:400;">(Produção / Compras)</span>
-          </label>
-          <input type="date" name="dataLiberacaoFornecedor"
-            class="form-control form-control-sm">
-        </div>
-
-        <div>
-          <label style="font-size:11px;color:#555;display:block;margin-bottom:2px;">
-            Assinatura do contrato pelo cliente
-            <span style="font-size:10px;color:#888;font-weight:400;">(igual p/ todos os itens)</span>
-          </label>
-          <input type="date" name="dataPedidoAssinado"
-            class="form-control form-control-sm"
-            readonly style="background:#f3f3f3;"
-            value="${document.getElementById('dataPedidoAssinado')?.value || ''}">
-        </div>
-
+        ${_htmlCardsRefPrazo()}
       </div>
     </div>
 
@@ -758,6 +834,7 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
 
   container.appendChild(bloco);
   window.travarAssinaturaProjetoKommo(bloco.querySelector('input[name="dataAssinaturaCliente"]'));
+  atualizarPrazoBloco(bloco);
 
   const tbody = bloco.querySelector("tbody");
   if (tbody) {

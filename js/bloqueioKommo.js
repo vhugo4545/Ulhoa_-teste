@@ -107,6 +107,7 @@ function verificarBloqueioKommo() {
       el.title = "Vem do campo \"Contrato Assinado\" da Kommo";
     }
     document.querySelectorAll('.tab-pane input[name="dataPedidoAssinado"]').forEach(inp => { inp.value = data; });
+    window.atualizarPrazosPDV?.();
   }
 
   // "Assinatura do cliente no projeto" (aba Prazos de cada grupo) = campo "Assinatura de Projeto" da Kommo.
