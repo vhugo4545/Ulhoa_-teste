@@ -163,6 +163,7 @@ _buscarServidor().then(data => {
   if (data && typeof data === "object") {
     window.CFG = { ..._DEFAULTS, ...data };
     _gravarCache(window.CFG);
+    window.atualizarBotoesCondicao?.(); // botões de "Condição" já montados (formulaValores.js)
   }
 });
 

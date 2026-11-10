@@ -732,14 +732,10 @@ function abrirPopupPreencherParams() {
   overlay.id = "popup-params-overlay";
   overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px;";
 
-  const condicoesHTML = [
-    ["Assinatura do cliente",    "dias úteis após assinatura do cliente no projeto desse respectivo item."],
-    ["Instalação da estrutura",  "dias úteis após instalação da estrutura desse respectivo item ser finalizada."],
-    ["Pagamento do(s) vidro(s)", "dias úteis após pagamento pelo cliente de todo(s) o(s) vidro(s) desse respectivo item."],
-    ["Liberação do fornecedor",  "dias úteis após liberação/entrega do material pelo fornecedor à Ferreira Ulhoa."],
-    ["Assinatura do contrato",   "dias úteis após assinatura do contrato pelo cliente."],
-  ].map(([lbl, txt]) =>
-    `<button type="button" data-condicao="${txt}" style="border:1px solid #d1d5db;background:#fff;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:11px;text-align:left;line-height:1.3;">${lbl}</button>`
+  // Condições: as mesmas de Ajustes → Opções de produto (formulaValores.js)
+  const _escC = t => String(t ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const condicoesHTML = (window.opcoesCondicaoPrazo ? window.opcoesCondicaoPrazo() : []).map(o => [o.label || o.value, o.value]).map(([lbl, txt]) =>
+    `<button type="button" data-condicao="${_escC(txt)}" style="border:1px solid #d1d5db;background:#fff;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:11px;text-align:left;line-height:1.3;">${_escC(lbl)}</button>`
   ).join("") +
   `<button type="button" data-condicao="personalizado" style="border:1px solid #3b82f6;background:#eff6ff;color:#1d4ed8;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:11px;text-align:left;line-height:1.3;">✏️ Personalizado</button>`;
 
@@ -1842,7 +1838,7 @@ Instagram: </textarea>
     <ul id="listaPendencias" class="mb-3" style="padding-left: 18px;"></ul>
     <button onclick="fecharPopupPendencias()" class="btn btn-secondary w-100">Fechar</button>
   </div>
-  <script src="../js/configuracoes.js"></script>
+  <script src="../js/configuracoes.js?v=cf1"></script>
   <script src="../js/permissoes.js?v=pf1"></script>
   <script src="../js/bloqueioKommo.js?v=ap3"></script>
   <script src="../js/bloqueioValor.js?v=pf1"></script>
@@ -1878,7 +1874,7 @@ Instagram: </textarea>
   <script src="../js/enviarPropostas.js" defer></script>
   <script src="../js/carregamento.js" defer></script>
   <script src="../js/formularioOrcamento.js" defer></script>
-  <script src="../js/formulaValores.js?v=pf7" defer></script>
+  <script src="../js/formulaValores.js?v=pf8" defer></script>
   <script src="../js/salvarPropostas.js?v=pf1" defer></script>
   <script src="../js/carregamento.js" defer></script>
   <script src="../js/visualizarBotoes.js?v=mot1" defer></script>

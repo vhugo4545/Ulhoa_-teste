@@ -17,6 +17,36 @@ function preencherInformacoesProduto(botao, texto, personalizado = false) {
 }
 
 
+// ── Botões de "Condição" (aba Prazos): nome e texto vêm de Ajustes → Opções de produto ──
+// (window.CFG.opcoesProduto, de configuracoes.js; sem ele, o cache do navegador; sem cache, o padrão)
+const _CONDICOES_PADRAO = [
+  { label: "Assinatura do cliente",    value: "dias úteis após assinatura do cliente no projeto desse respectivo item." },
+  { label: "Instalação da estrutura",  value: "dias úteis após instalação da estrutura desse respectivo item ser finalizada." },
+  { label: "Pagamento do(s) vidro(s)", value: "dias úteis após pagamento pelo cliente de todo(s) o(s) vidro(s) desse respectivo item." },
+  { label: "Liberação do fornecedor",  value: "dias úteis após liberação/entrega do material pelo fornecedor à Ferreira Ulhoa." },
+  { label: "Assinatura do contrato",   value: "dias úteis após assinatura do contrato pelo cliente." },
+];
+window.opcoesCondicaoPrazo = function () {
+  let lista = window.CFG?.opcoesProduto;
+  if (!Array.isArray(lista) || !lista.length) {
+    try { lista = JSON.parse(localStorage.getItem("ulhoa_cfg_v1"))?.opcoesProduto; } catch { lista = null; }
+  }
+  return (Array.isArray(lista) && lista.length ? lista : _CONDICOES_PADRAO).filter(o => o && (o.label || o.value));
+};
+const _escAttrCond = t => String(t ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function _htmlBotoesCondicao() {
+  const est = 'class="btn btn-outline-secondary btn-sm text-start px-2" style="font-size:11px;line-height:1.3;"';
+  return window.opcoesCondicaoPrazo().map(o =>
+    `<button type="button" ${est} data-texto="${_escAttrCond(o.value)}" onclick="preencherInformacoesProduto(this, this.dataset.texto)">${_escAttrCond(o.label || o.value)}</button>`
+  ).join("") +
+  `<button type="button" class="btn btn-outline-primary btn-sm text-start px-2" style="font-size:11px;line-height:1.3;" onclick="preencherInformacoesProduto(this, '', true)">✏️ Personalizado</button>`;
+}
+// Quando as opções chegam do servidor depois dos grupos já montados, redesenha os botões
+window.atualizarBotoesCondicao = function () {
+  document.querySelectorAll(".opcoes-informacoes-produto").forEach(el => { el.innerHTML = _htmlBotoesCondicao(); });
+};
+
+
 // ── Referência do prazo (aba Prazos) ────────────────────────────────────────
 // Um marcador por condição; só um fica marcado. Marca sozinho conforme a condição escolhida.
 // Cada cartão mostra: data + prazo em dias úteis = data de entrega (sem fins de semana e feriados).
@@ -790,12 +820,7 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
     <div class="col-12 informacoes-produto-wrapper">
       <label class="form-label fw-semibold mb-1" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#555;">Condição</label>
       <div class="d-grid gap-1 mb-2 opcoes-informacoes-produto" style="grid-template-columns:1fr 1fr;display:grid;">
-        <button type="button" class="btn btn-outline-secondary btn-sm text-start px-2" style="font-size:11px;line-height:1.3;" onclick="preencherInformacoesProduto(this, 'dias úteis após assinatura do cliente no projeto desse respectivo item.')">Assinatura do cliente</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm text-start px-2" style="font-size:11px;line-height:1.3;" onclick="preencherInformacoesProduto(this, 'dias úteis após instalação da estrutura desse respectivo item ser finalizada.')">Instalação da estrutura</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm text-start px-2" style="font-size:11px;line-height:1.3;" onclick="preencherInformacoesProduto(this, 'dias úteis após pagamento pelo cliente de todo(s) o(s) vidro(s) desse respectivo item.')">Pagamento do(s) vidro(s)</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm text-start px-2" style="font-size:11px;line-height:1.3;" onclick="preencherInformacoesProduto(this, 'dias úteis após liberação/entrega do material pelo fornecedor à Ferreira Ulhoa.')">Liberação do fornecedor</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm text-start px-2" style="font-size:11px;line-height:1.3;" onclick="preencherInformacoesProduto(this, 'dias úteis após assinatura do contrato pelo cliente.')">Assinatura do contrato</button>
-        <button type="button" class="btn btn-outline-primary btn-sm text-start px-2" style="font-size:11px;line-height:1.3;" onclick="preencherInformacoesProduto(this, '', true)">✏️ Personalizado</button>
+        ${_htmlBotoesCondicao()}
       </div>
       <textarea
         name="informacoesProduto"
