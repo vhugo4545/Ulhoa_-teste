@@ -61,6 +61,23 @@
       // em caso de erro na interceptação, deixa o fetch original passar
     }
 
-    return _origFetch(url, options);
+    const resp = _origFetch(url, options);
+    _avisarProducao(url, options, resp);
+    return resp;
   };
+
+  // Proposta salva no PDV → avisa o app de produção para atualizar a cópia dele na hora
+  // (datas de entrega, condição e prazo aparecem lá sem recarregar). Não interfere no salvar.
+  function _avisarProducao(url, options, resp) {
+    try {
+      const urlStr = typeof url === "string" ? url : url instanceof Request ? url.url : String(url);
+      const metodo = String(options?.method || (url instanceof Request ? url.method : "GET")).toUpperCase();
+      const m = urlStr.match(/^https:\/\/ulhoa-0a02024d350a\.herokuapp\.com\/api\/propostas\/([a-f0-9]{24})(?:[?#]|$)/i);
+      if (!m || (metodo !== "PUT" && metodo !== "PATCH")) return;
+      resp.then(r => {
+        if (!r.ok) return;
+        _origFetch("https://app-producao-b843a894d7ea.herokuapp.com/api/proposals-cache/atualizar/" + m[1], { method: "POST" }).catch(() => {});
+      }).catch(() => {});
+    } catch (_) {}
+  }
 })();
