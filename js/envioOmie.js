@@ -3338,6 +3338,39 @@ const getModoComissao = () => (controls.querySelector('input[name="comModo"]:che
   }
 }
     // ===================== RECALC =====================
+// Soma (em centavos) das parcelas "Faturado Direto" do pedido; null se não houver nenhuma com valor
+function _vvFatDiretoDasParcelasC(){
+  const num = t => {
+    const v = String(t || '').replace(/[^\d,.-]/g, '');
+    return Number(v.includes(',') ? v.replace(/\./g, '').replace(',', '.') : v) || 0;
+  };
+  let total = 0, achou = false;
+  document.querySelectorAll('#listaParcelas .row').forEach(row => {
+    if (row.querySelector('.tipo-item-parcela')?.value !== 'faturado-direto') return;
+    const v = num(row.querySelector('.valor-parcela')?.value);
+    if (v > 0) { total += v; achou = true; }
+  });
+  return achou ? Math.round(total * 100) : null;
+}
+// Mostra ao lado de "Produtos faturados diretos" de onde veio o valor (parcelas ou custo da proposta)
+function _vvMostrarOrigemFatDireto(parcelasC, custoC){
+  const alvo = document.getElementById('vv-cat-vidro');
+  if (!alvo) return;
+  let el = document.getElementById('vv-cat-vidro-origem');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'vv-cat-vidro-origem';
+    el.style.cssText = 'font-size:11px;color:#64748b;margin-top:2px;';
+    alvo.parentElement?.appendChild(el);
+  }
+  const fmt = c => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  if (parcelasC == null) { el.textContent = 'pelo custo dos itens na proposta'; el.style.color = '#64748b'; return; }
+  const dif = parcelasC - custoC;
+  el.textContent = Math.abs(dif) < 1
+    ? 'pelas parcelas de Faturado Direto (igual ao custo na proposta)'
+    : `pelas parcelas de Faturado Direto · custo na proposta ${fmt(custoC)} (diferença ${dif > 0 ? '+' : '−'}${fmt(Math.abs(dif))})`;
+  el.style.color = Math.abs(dif) < 1 ? '#64748b' : '#b45309';
+}
 function recalc(){
   const rows = [...tbody.querySelectorAll('tr')];
   const isIgnoredKey = (key) => !!chkAll.find(c => c.dataset.key===key)?.checked;
@@ -3356,10 +3389,15 @@ function recalc(){
   const aprovadosRows = rows.filter(tr => !isIgnoredKey(tr.dataset.key));
   const nAprov = aprovadosRows.length;
 
-  // Faturamento direto = ignorados sem MO, usando data-custo
-  const catIgnoradosSemMO = rows
+  // Faturamento direto (não vai para a Omie): o que o cliente paga direto aos fornecedores.
+  // Se o pedido tem parcelas "Faturado Direto", vale a soma delas (o que foi combinado com o cliente);
+  // sem essas parcelas, o custo do material dos itens ignorados (sem MO), como antes.
+  const catIgnoradosCustoC = rows
     .filter(tr => isIgnoredKey(tr.dataset.key) && tr.dataset.islabor !== '1')
     .reduce((acc, tr) => acc + toCents(Number(tr.dataset.custo || 0)), 0);
+  const fatParcelasC = catIgnoradosCustoC > 0 ? _vvFatDiretoDasParcelasC() : null;
+  const catIgnoradosSemMO = fatParcelasC != null ? fatParcelasC : catIgnoradosCustoC;
+  _vvMostrarOrigemFatDireto(fatParcelasC, catIgnoradosCustoC);
 
   // ✅ baseParaServico = (totalTodos - desconto) - faturamento direto
   const totalTodosComDescontoParaServico = Math.max(0, totalTodos - descontoTotal);
