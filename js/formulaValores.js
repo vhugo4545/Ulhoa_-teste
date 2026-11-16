@@ -1102,12 +1102,54 @@ window.codigosApontamento = function () {
     for (const nome of acabados.length ? acabados : [titulo]) {
       idx++;
       const n = _semAcentoCod(nome);
-      out.push({ grupoId: gid, item: idx, nome, codigo: num && num !== '-' ? `${num}-${idx}` : null,
+      out.push({ grupoId: gid, item: idx, nome, acabado: acabados.length > 0, codigo: num && num !== '-' ? `${num}-${idx}` : null,
         semApontamento: _SEM_APONT.includes(n) || n.includes('faturamento direto') });
     }
   });
   return out;
 };
+
+// ── Código offline (U3…): os mesmos dados do QR, compactados, para colar no app sem precisar de internet ──
+// Formato: "U3" + base64url de [flags][idProposta][idGrupo][texto][soma]
+//   flags: 1 = idProposta é ObjectId (12 bytes), 2 = idGrupo é ObjectId, 4 = texto comprimido (deflate-raw)
+//   id que não é ObjectId vai como texto terminado em \0; texto = nome\0pedido\0cliente\0ambiente (ambiente vazio = nome)
+//   soma: soma dos bytes anteriores % 256 (o app recusa código cortado ou alterado)
+// O app de apontamento (app-producao/public/apontamento.html, decode) lê sem internet.
+window.codigoOfflineDoQr = async function (textoUM2) {
+  const [prop, grupo, nome, p, c, a] = String(textoUM2).slice(4).split('|');
+  const enc = new TextEncoder();
+  const partes = []; let flags = 0;
+  const id = (s, bit) => {
+    if (/^[0-9a-f]{24}$/i.test(s)) { flags |= bit; partes.push(Uint8Array.from(s.match(/../g).map(h => parseInt(h, 16)))); }
+    else partes.push(enc.encode(s + '\0'));
+  };
+  id(prop, 1); id(grupo, 2);
+  let txt = enc.encode([nome, p, c, a === nome ? '' : a].join('\0'));
+  try {
+    const z = new Uint8Array(await new Response(new Blob([txt]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer());
+    if (z.length < txt.length) { txt = z; flags |= 4; }
+  } catch (_) { /* navegador sem CompressionStream: vai sem comprimir */ }
+  const corpo = [Uint8Array.of(flags), ...partes, txt];
+  const tot = new Uint8Array(corpo.reduce((n, x) => n + x.length, 0) + 1);
+  let o = 0; for (const x of corpo) { tot.set(x, o); o += x.length; }
+  tot[o] = tot.subarray(0, o).reduce((s, b) => (s + b) % 256, 0);
+  let bin = ''; tot.forEach(b => bin += String.fromCharCode(b));
+  return 'U3' + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+
+// Texto do QR (UM2) de um produto do grupo, montado pelo mesmo gerador do PDF (gerarPdfmake.js)
+function _textoQrDoItem(x, lista) {
+  if (typeof qrApontamentoGrupo !== 'function') throw new Error('Abra o orçamento pela tela de edição para gerar o código.');
+  const doGrupo = lista.filter(y => y.grupoId === x.grupoId);
+  const g = {
+    grupoId: x.grupoId,
+    nomeGrupo: document.getElementById('titulo-accordion-' + x.grupoId)?.textContent?.trim() || x.grupoId,
+    itens: doGrupo.filter(y => y.acabado).map(y => ({ utilizacao: 'Produto Acabado', nomeBruto: y.nome, descricao: y.nome })),
+  };
+  const numeroPedido = document.getElementById('numeroPedido')?.value?.trim() || '-';
+  const nomeCliente = (document.querySelector('input.razaoSocial')?.value || '').trim() || '-';
+  return qrApontamentoGrupo(g, { numeroPedido, nomeCliente })[doGrupo.indexOf(x)]?.texto || null;
+}
 
 async function _copiarTexto(txt) {
   try { await navigator.clipboard.writeText(txt); return true; }
@@ -1118,17 +1160,24 @@ async function _copiarTexto(txt) {
   }
 }
 
-// Botão "Código" do grupo: copia o código do produto (com vários Produtos Acabados, mostra a lista)
+// Botão "Código" do grupo: copia o código offline do produto (com vários Produtos Acabados, mostra a lista)
 window.copiarCodigoApontamento = async function (grupoId, botao) {
   document.getElementById('pop-cod-apont')?.remove();
   const lista = window.codigosApontamento();
   if (!lista.length || !lista[0].codigo) return alert('Este orçamento ainda não tem número de pedido: o código de apontamento só existe depois que vira pedido.');
   const doGrupo = lista.filter(x => x.grupoId === grupoId);
   const copiar = async (x, alvo) => {
-    if (await _copiarTexto(x.codigo)) {
-      const antes = alvo.textContent; alvo.textContent = 'Copiado ' + x.codigo; alvo.disabled = true;
+    let cod;
+    try {
+      const texto = _textoQrDoItem(x, lista);
+      if (!texto) return alert('Este produto não tem apontamento de produção.');
+      cod = await window.codigoOfflineDoQr(texto);
+    } catch (e) { return alert(e.message || 'Não consegui gerar o código.'); }
+    if (await _copiarTexto(cod)) {
+      const antes = alvo.textContent; alvo.textContent = 'Copiado!'; alvo.disabled = true;
+      alvo.title = cod;
       setTimeout(() => { alvo.textContent = antes; alvo.disabled = false; }, 2000);
-    } else prompt('Copie o código:', x.codigo);
+    } else prompt('Copie o código:', cod);
   };
   if (!doGrupo.some(x => !x.semApontamento)) return alert('Este grupo não tem produto com apontamento de produção (vidro, instalação, serviço ou faturamento direto).');
   if (doGrupo.length === 1) return copiar(doGrupo[0], botao);
@@ -1137,11 +1186,11 @@ window.copiarCodigoApontamento = async function (grupoId, botao) {
   const pop = document.createElement('div');
   pop.id = 'pop-cod-apont';
   pop.style.cssText = 'position:absolute;z-index:2000;background:#fff;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:8px;min-width:280px;max-width:420px';
-  pop.innerHTML = '<div style="font-size:12px;color:#475569;margin-bottom:6px">Código para o app de apontamento:</div>' +
+  pop.innerHTML = '<div style="font-size:12px;color:#475569;margin-bottom:6px">Código para colar no app de apontamento (funciona sem internet):</div>' +
     doGrupo.map((x, i) => `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-top:${i ? '1px solid #eef2f7' : '0'}">
       <span style="flex:1;font-size:12px">Item ${x.item} — ${x.nome.replace(/[<>&]/g, '')}</span>
       ${x.semApontamento ? '<span style="font-size:11px;color:#94a3b8">sem apontamento</span>'
-        : `<button type="button" class="btn btn-sm btn-outline-primary" data-i="${i}">${x.codigo}</button>`}</div>`).join('');
+        : `<button type="button" class="btn btn-sm btn-outline-primary" data-i="${i}">Copiar</button>`}</div>`).join('');
   const r = botao.getBoundingClientRect();
   pop.style.top = (r.bottom + window.scrollY + 4) + 'px';
   pop.style.left = Math.max(8, r.right + window.scrollX - 300) + 'px';
