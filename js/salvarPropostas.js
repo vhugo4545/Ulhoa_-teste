@@ -1472,7 +1472,9 @@ function _avisoDuplicada(numeroOrcamento, card) {
           <div>Orçamento novo: <b>${esc(numeroOrcamento || "—")}</b></div>
           ${ok ? `
             <div>Card novo na Kommo: <b style="font-size:18px">#${esc(card.lead_id)}</b></div>
-            <div style="font-size:13px;color:#475569">Etapa: <b>${esc(card.nomeEtapa || card.status_id)}</b>${card.jaExistia ? " · este card já existia" : ""}</div>
+            <div style="font-size:13px;color:#475569">Funil e etapa: <b>${esc(card.nomeFunil || card.pipeline_id)} · ${esc(card.nomeEtapa || card.status_id)}</b>${card.jaExistia ? " · este card já existia" : ""}</div>
+            ${card.comoAchouFunil ? `<div style="font-size:12px;color:#64748b">Funil do vendedor achado pelo ${esc(card.comoAchouFunil)}.</div>` : ""}
+            ${card.avisoDestino ? `<div style="font-size:12px;color:#92400e">${esc(card.avisoDestino)}</div>` : ""}
             ${card.camposRecusados?.length ? `<div style="font-size:12px;color:#92400e">Campos que a Kommo não aceitou: ${esc(card.camposRecusados.join(", "))}</div>` : ""}
             <a href="${esc(card.link)}" target="_blank" rel="noopener" style="font-size:13px;color:#1d4ed8;font-weight:600">Abrir o card na Kommo ↗</a>`
           : `<div style="font-size:13px;color:#92400e">${esc(card?.erro || "Não foi possível criar o card na Kommo.")}<br>A proposta nova foi salva no PDV; crie o card manualmente ou tente de novo.</div>`}
