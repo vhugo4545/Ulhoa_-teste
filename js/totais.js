@@ -291,6 +291,7 @@ function adicionarTotalizadoresPorAmbienteComAgrupamento() {
     `;
 
     bloco.appendChild(divInterna);
+    anexarPercentuaisMinimos(divInterna, blocoId); // só na proposta modelo: mínimos deste produto
   });
 
   const _descontoSalvo = document.getElementById("campoDescontoFinal")?.value || "";
@@ -351,7 +352,6 @@ function adicionarTotalizadoresPorAmbienteComAgrupamento() {
     `;
 
     containerResumo.appendChild(blocoGeral);
-    anexarPercentuaisMinimos(blocoGeral); // só na proposta modelo
   }
 
   const inputDesconto = document.createElement("input");
@@ -778,8 +778,10 @@ window._apminResolver = async function(aprovacaoId, novoStatus) {
 // =========================
 // PERCENTUAIS MÍNIMOS (só na proposta modelo, aberta pelo botão "Editar Modelo")
 // =========================
-// Uma linha de campos embaixo do "Total da Proposta", alinhada com cada cartão, para definir a
-// porcentagem mínima de cada referencial. Fica salva nos Ajustes (window.CFG.percentuaisMinimos).
+// Em cada produto (grupo) do modelo, uma linha de campos embaixo do "Resumo", alinhada com cada cartão,
+// para definir a porcentagem mínima de cada referencial daquele produto. Fica salva nos Ajustes:
+// window.CFG.percentuaisMinimos = { "<nome do produto normalizado>": { nome, miudezas, impostos, … } }
+// (as propostas puxam o produto do modelo pelo nome, carregarProdutosModelo.js).
 const ID_PROPOSTA_MODELO = "68746e305b9691a7ed3b3f97";
 const PCT_MIN_CAMPOS = [
   { chave: "miudezas",           label: "Miudezas" },
@@ -794,7 +796,14 @@ const PCT_MIN_CAMPOS = [
   { chave: "margemLucro",        label: "Margem de Lucro" },
 ];
 const ehPropostaModelo = () => new URLSearchParams(location.search).get("id") === ID_PROPOSTA_MODELO;
-let _painelPctMin = null;
+const _paineisPctMin = new Map();   // blocoId -> painel (reaproveitado a cada redesenho dos totais)
+const chaveProdutoPctMin = nome => String(nome || "").normalize("NFD").replace(/\p{M}/gu, "").trim().toLowerCase().replace(/\s+/g, " ");
+const _nomeProdutoBloco = blocoId => document.getElementById("titulo-accordion-" + blocoId)?.textContent?.trim() || "";
+window.percentuaisMinimosDoProduto = nome => {
+  const todos = window.CFG?.percentuaisMinimos;
+  const v = todos && typeof todos === "object" ? todos[chaveProdutoPctMin(nome)] : null;
+  return v && typeof v === "object" ? v : {};
+};
 
 function _estilosPctMin() {
   if (document.getElementById("pct-min-css")) return;
@@ -819,15 +828,15 @@ function _estilosPctMin() {
   document.head.appendChild(st);
 }
 
-function _montarPainelPctMin() {
+function _montarPainelPctMin(blocoId) {
   _estilosPctMin();
-  const salvos = window.CFG?.percentuaisMinimos || {};
+  const salvos = window.percentuaisMinimosDoProduto(_nomeProdutoBloco(blocoId));
   const div = document.createElement("div");
   div.className = "pct-min";
   div.innerHTML = `
     <div class="pct-min-head">
       <div>
-        <div class="pct-min-tit"><span class="material-icons-outlined">rule</span>Porcentagem mínima de cada referencial</div>
+        <div class="pct-min-tit"><span class="material-icons-outlined">rule</span>Porcentagem mínima de cada referencial deste produto</div>
         <div class="pct-min-sub">Cada campo é o mínimo aceito para o cartão logo acima (mesma base de cálculo da porcentagem mostrada nele).</div>
       </div>
       <div class="pct-min-status" id="pct-min-status"></div>
@@ -856,8 +865,16 @@ function _montarPainelPctMin() {
       if (!Number.isFinite(n) || n < 0 || n > 1000) { avisar("Valor inválido em " + inp.closest(".pct-min-card").querySelector(".lbl").lastChild.textContent, "err"); return; }
       valores[inp.dataset.pctMin] = Math.round(n * 100) / 100;
     }
+    const nome = _nomeProdutoBloco(blocoId);
+    if (!nome) { avisar("Produto sem nome: dê um nome ao produto antes.", "err"); return; }
     avisar("Salvando…");
-    const ok = await window.CFgAPI?.salvarChave?.("percentuaisMinimos", valores);
+    // Só a parte deste produto muda; os outros produtos ficam como estão no servidor
+    const ok = await window.CFgAPI?.salvarChave?.("percentuaisMinimos", atual => {
+      const todos = atual && typeof atual === "object" && !Array.isArray(atual) ? { ...atual } : {};
+      for (const k of Object.keys(todos)) if (typeof todos[k] !== "object" || todos[k] === null) delete todos[k]; // formato antigo (um só para tudo)
+      todos[chaveProdutoPctMin(nome)] = { nome, ...valores };
+      return todos;
+    });
     avisar(ok ? "✓ Salvo" : "Não consegui salvar. Tente de novo.", ok ? "ok" : "err");
   };
   div.querySelectorAll("[data-pct-min]").forEach(inp => {
@@ -873,9 +890,9 @@ function _montarPainelPctMin() {
   return div;
 }
 
-// Chamado depois de montar o "Total da Proposta": o mesmo painel é reaproveitado (não perde o que está sendo digitado)
-function anexarPercentuaisMinimos(blocoGeral) {
-  if (!ehPropostaModelo() || !blocoGeral) return;
-  if (!_painelPctMin) _painelPctMin = _montarPainelPctMin();
-  blocoGeral.appendChild(_painelPctMin);
+// Chamado depois de montar o "Resumo" de cada produto: o mesmo painel é reaproveitado (não perde o que está sendo digitado)
+function anexarPercentuaisMinimos(divResumo, blocoId) {
+  if (!ehPropostaModelo() || !divResumo || !blocoId) return;
+  if (!_paineisPctMin.has(blocoId)) _paineisPctMin.set(blocoId, _montarPainelPctMin(blocoId));
+  divResumo.appendChild(_paineisPctMin.get(blocoId));
 }

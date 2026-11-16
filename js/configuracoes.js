@@ -237,11 +237,12 @@ window.CFgAPI = {
 };
 
 // Grava uma única chave dos Ajustes sem sobrescrever as outras: lê a versão atual do servidor,
-// troca só essa chave e salva (usado pelos percentuais mínimos da proposta modelo, totais.js)
+// troca só essa chave e salva (usado pelos percentuais mínimos da proposta modelo, totais.js).
+// valor pode ser uma função (valorAtualNoServidor) => novoValor, para mexer só numa parte da chave.
 window.CFgAPI.salvarChave = async function (chave, valor) {
   const atual = await _buscarServidor();
   if (!atual || typeof atual !== "object") return false;   // sem a versão do servidor não salva (não apaga nada)
-  const novo = { ...atual, [chave]: valor };
+  const novo = { ...atual, [chave]: typeof valor === "function" ? valor(atual[chave]) : valor };
   try {
     const res = await fetch(_CFG_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(novo) });
     if (!res.ok) return false;
