@@ -351,6 +351,7 @@ function adicionarTotalizadoresPorAmbienteComAgrupamento() {
     `;
 
     containerResumo.appendChild(blocoGeral);
+    anexarPercentuaisMinimos(blocoGeral); // só na proposta modelo
   }
 
   const inputDesconto = document.createElement("input");
@@ -773,3 +774,108 @@ window._apminResolver = async function(aprovacaoId, novoStatus) {
     adicionarTotalizadoresPorAmbienteComAgrupamento();
   }
 };
+
+// =========================
+// PERCENTUAIS MÍNIMOS (só na proposta modelo, aberta pelo botão "Editar Modelo")
+// =========================
+// Uma linha de campos embaixo do "Total da Proposta", alinhada com cada cartão, para definir a
+// porcentagem mínima de cada referencial. Fica salva nos Ajustes (window.CFG.percentuaisMinimos).
+const ID_PROPOSTA_MODELO = "68746e305b9691a7ed3b3f97";
+const PCT_MIN_CAMPOS = [
+  { chave: "miudezas",           label: "Miudezas" },
+  { chave: "gastosOperacionais", label: "Gastos Operacionais" },
+  { chave: "impostos",           label: "Impostos" },
+  { chave: "margemSeguranca",    label: "Mg. Segurança" },
+  { chave: "comissaoArquiteta",  label: "Comissão Arquiteta" },
+  { chave: "negociacao",         label: "Negociação" },
+  { chave: null,                 label: "Custo Material" },   // sem porcentagem
+  { chave: null,                 label: "Valor Mínimo", fixo: "100%" },
+  { chave: "valorSugerido",      label: "Valor Sugerido" },
+  { chave: "margemLucro",        label: "Margem de Lucro" },
+];
+const ehPropostaModelo = () => new URLSearchParams(location.search).get("id") === ID_PROPOSTA_MODELO;
+let _painelPctMin = null;
+
+function _estilosPctMin() {
+  if (document.getElementById("pct-min-css")) return;
+  const st = document.createElement("style");
+  st.id = "pct-min-css";
+  st.textContent = `
+    .pct-min{margin-top:14px;border:1px dashed #a5b4fc;background:linear-gradient(180deg,#f5f7ff 0%,#fff 100%);border-radius:12px;padding:14px 16px 16px}
+    .pct-min-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    .pct-min-tit{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#312e81}
+    .pct-min-tit .material-icons-outlined{font-size:20px;color:#4f46e5}
+    .pct-min-sub{font-size:11.5px;color:#64748b;margin-top:2px;font-weight:500}
+    .pct-min-status{font-size:11.5px;font-weight:600;color:#64748b;min-height:16px}
+    .pct-min-status.ok{color:#15803d}.pct-min-status.err{color:#b91c1c}
+    .pct-min-card{background:#fff;border:1px solid #e0e7ff;border-radius:10px;padding:8px 8px 10px;height:100%;display:flex;flex-direction:column;align-items:center;gap:6px}
+    .pct-min-card .lbl{font-size:10.5px;color:#64748b;text-align:center;line-height:1.25}
+    .pct-min-card .lbl b{display:block;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:#6366f1;font-weight:700}
+    .pct-min-in{display:flex;align-items:center;width:100%;max-width:110px;border:1px solid #c7d2fe;border-radius:8px;background:#fff;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+    .pct-min-in:focus-within{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+    .pct-min-in input{border:0;outline:0;width:100%;min-width:0;text-align:right;font-weight:700;font-size:14px;padding:5px 2px 5px 8px;color:#1e1b4b;background:transparent}
+    .pct-min-in span{padding:0 8px 0 2px;font-weight:700;color:#6366f1;font-size:13px}
+    .pct-min-fixo{font-size:13px;font-weight:700;color:#94a3b8;padding:6px 0}`;
+  document.head.appendChild(st);
+}
+
+function _montarPainelPctMin() {
+  _estilosPctMin();
+  const salvos = window.CFG?.percentuaisMinimos || {};
+  const div = document.createElement("div");
+  div.className = "pct-min";
+  div.innerHTML = `
+    <div class="pct-min-head">
+      <div>
+        <div class="pct-min-tit"><span class="material-icons-outlined">rule</span>Porcentagem mínima de cada referencial</div>
+        <div class="pct-min-sub">Cada campo é o mínimo aceito para o cartão logo acima (mesma base de cálculo da porcentagem mostrada nele).</div>
+      </div>
+      <div class="pct-min-status" id="pct-min-status"></div>
+    </div>
+    <div class="row text-center gx-3 gy-3">
+      ${PCT_MIN_CAMPOS.map(c => `
+        <div class="col"><div class="pct-min-card">
+          <div class="lbl"><b>Mínimo</b>${c.label}</div>
+          ${c.chave
+            ? `<label class="pct-min-in" title="Porcentagem mínima de ${c.label}">
+                 <input type="text" inputmode="decimal" data-pct-min="${c.chave}" placeholder="0,00"
+                   value="${salvos[c.chave] != null ? Number(salvos[c.chave]).toFixed(2).replace(".", ",") : ""}"><span>%</span></label>`
+            : `<div class="pct-min-fixo">${c.fixo || "—"}</div>`}
+        </div></div>`).join("")}
+    </div>`;
+
+  const status = div.querySelector("#pct-min-status");
+  const avisar = (t, cls = "") => { status.textContent = t; status.className = "pct-min-status " + cls; };
+  let timer = null;
+  const salvar = async () => {
+    const valores = {};
+    for (const inp of div.querySelectorAll("[data-pct-min]")) {
+      const t = inp.value.trim().replace(/\s|%/g, "").replace(",", ".");
+      if (t === "") continue;
+      const n = Number(t);
+      if (!Number.isFinite(n) || n < 0 || n > 1000) { avisar("Valor inválido em " + inp.closest(".pct-min-card").querySelector(".lbl").lastChild.textContent, "err"); return; }
+      valores[inp.dataset.pctMin] = Math.round(n * 100) / 100;
+    }
+    avisar("Salvando…");
+    const ok = await window.CFgAPI?.salvarChave?.("percentuaisMinimos", valores);
+    avisar(ok ? "✓ Salvo" : "Não consegui salvar. Tente de novo.", ok ? "ok" : "err");
+  };
+  div.querySelectorAll("[data-pct-min]").forEach(inp => {
+    inp.addEventListener("input", () => {
+      inp.value = inp.value.replace(/[^\d,.]/g, "");
+      avisar("Alterado…"); clearTimeout(timer); timer = setTimeout(salvar, 900);
+    });
+    inp.addEventListener("blur", () => {
+      const n = Number(inp.value.replace(",", "."));
+      if (inp.value.trim() !== "" && Number.isFinite(n)) inp.value = n.toFixed(2).replace(".", ",");
+    });
+  });
+  return div;
+}
+
+// Chamado depois de montar o "Total da Proposta": o mesmo painel é reaproveitado (não perde o que está sendo digitado)
+function anexarPercentuaisMinimos(blocoGeral) {
+  if (!ehPropostaModelo() || !blocoGeral) return;
+  if (!_painelPctMin) _painelPctMin = _montarPainelPctMin();
+  blocoGeral.appendChild(_painelPctMin);
+}
