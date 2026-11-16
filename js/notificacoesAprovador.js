@@ -393,7 +393,7 @@
       ui.titulo.textContent = n
         ? (n === 1 ? "1 pedido aguardando aprovação" : `${n} pedidos aguardando aprovação`)
         : "Nenhuma aprovação pendente";
-      ui.dica.textContent = "Valor: \"até o valor\" trava de novo se o total subir. Etapa: \"só nesta etapa\" trava de novo se o lead mudar para outra etapa bloqueada.";
+      ui.dica.textContent = "Valor: \"até o valor\" trava de novo se o total subir. Etapa: \"só nesta etapa\" trava de novo se o lead mudar para outra etapa bloqueada. Porcentagem mínima: trava de novo se alguma porcentagem baixar.";
 
       if (!n) {
         ui.lista.innerHTML = `<div style="padding:24px;text-align:center;color:#64748b;font-size:13px;">Tudo em dia ✅</div>`;
