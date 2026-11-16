@@ -374,12 +374,24 @@ const resposta = await fetch("https://ulhoa-0a02024d350a.herokuapp.com/api/propo
 const resultado = await resposta.json();
 console.log('📦 Proposta salva com sucesso:', JSON.stringify(resultado, null, 2));
 console.log('🆔 ID:', resultado._id);
-ocultarCarregando();
-mostrarPopupCustomizado("✅ Sucesso", "Proposta atualizada com sucesso!", "success");
 
-    if (resultado && resultado._id) {
+    // Card novo na Kommo, na mesma etapa do card da proposta original, já com o ID PDV e o número novo
+    const idOriginal = new URLSearchParams(location.search).get("id");
+    let card = null;
+    if (resultado && resultado._id && idOriginal) card = await _criarCardDuplicado(resultado._id, idOriginal);
+    ocultarCarregando();
+
+    if (resultado && resultado._id && !idOriginal) {   // criar.html: proposta nova, sem card original
+      mostrarPopupCustomizado("✅ Sucesso", "Proposta salva com sucesso!", "success");
       window.location.href = `editar.html?id=${resultado._id}`;
+      return resultado;
     }
+    if (resultado && resultado._id) {
+      await _avisoDuplicada(numeroOrcamento, card);
+      window.location.href = `editar.html?id=${resultado._id}`;
+      return resultado;
+    }
+    mostrarPopupCustomizado("❌ Erro", "O PDV não devolveu a proposta nova.", "error");
 
     const btn = document.createElement("button");
     btn.textContent = "Editar";
@@ -1427,3 +1439,49 @@ async function marcarPrecosDivergentesOmie() {
   }
 }
 
+// ── Duplicar Proposta: card novo na Kommo (kommo-server /proposta/:id/duplicar-lead) ──
+async function _criarCardDuplicado(novoId, origemId) {
+  try {
+    const token = localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
+    const r = await fetch(`https://kommo-server-9f1243cbe450.herokuapp.com/proposta/${encodeURIComponent(novoId)}/duplicar-lead`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ origemPropostaId: origemId }),
+      signal: AbortSignal.timeout(30000),
+    });
+    const d = await r.json().catch(() => ({}));
+    return r.ok ? d : { erro: d.error || `Kommo respondeu ${r.status}` };
+  } catch (e) {
+    return { erro: e.name === "TimeoutError" ? "A Kommo demorou para responder" : e.message };
+  }
+}
+
+// Janela com o resultado: número do orçamento novo e do card novo (ou o motivo de não ter criado o card)
+function _avisoDuplicada(numeroOrcamento, card) {
+  return new Promise(resolve => {
+    const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const ok = card && card.lead_id;
+    const fundo = document.createElement("div");
+    fundo.style.cssText = "position:fixed;inset:0;z-index:100001;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;padding:16px;font-family:inherit";
+    fundo.innerHTML = `
+      <div style="background:#fff;border-radius:14px;width:min(460px,100%);box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden">
+        <div style="padding:18px 22px;background:${ok ? "#f0fdf4" : "#fffbeb"};border-bottom:1px solid ${ok ? "#bbf7d0" : "#fde68a"}">
+          <div style="font-size:16px;font-weight:700;color:${ok ? "#166534" : "#92400e"}">${ok ? "✅ Proposta duplicada" : "⚠️ Proposta duplicada, card não criado"}</div>
+        </div>
+        <div style="padding:18px 22px;font-size:14px;color:#1e293b;display:flex;flex-direction:column;gap:10px">
+          <div>Orçamento novo: <b>${esc(numeroOrcamento || "—")}</b></div>
+          ${ok ? `
+            <div>Card novo na Kommo: <b style="font-size:18px">#${esc(card.lead_id)}</b></div>
+            <div style="font-size:13px;color:#475569">Etapa: <b>${esc(card.nomeEtapa || card.status_id)}</b>${card.jaExistia ? " · este card já existia" : ""}</div>
+            ${card.camposRecusados?.length ? `<div style="font-size:12px;color:#92400e">Campos que a Kommo não aceitou: ${esc(card.camposRecusados.join(", "))}</div>` : ""}
+            <a href="${esc(card.link)}" target="_blank" rel="noopener" style="font-size:13px;color:#1d4ed8;font-weight:600">Abrir o card na Kommo ↗</a>`
+          : `<div style="font-size:13px;color:#92400e">${esc(card?.erro || "Não foi possível criar o card na Kommo.")}<br>A proposta nova foi salva no PDV; crie o card manualmente ou tente de novo.</div>`}
+        </div>
+        <div style="padding:14px 22px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end">
+          <button type="button" style="padding:9px 16px;border:none;border-radius:8px;background:#334155;color:#fff;font-weight:600;cursor:pointer;font-family:inherit">Abrir a proposta nova</button>
+        </div>
+      </div>`;
+    fundo.querySelector("button").onclick = () => { fundo.remove(); resolve(); };
+    document.body.appendChild(fundo);
+  });
+}
