@@ -888,7 +888,8 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
             ], fillColor: '#e5e7eb', alignment: 'center', margin: [0, 44, 0, 0] },
           { columns: qrs.map(q => ({ width: 'auto', stack: [
               q.texto ? { qr: q.texto, fit: 118, eccLevel: 'M', alignment: 'center' } : { canvas: [{ type: 'rect', x: 0, y: 0, w: 118, h: 118, lineWidth: 1, lineColor: '#999999' }], alignment: 'center' },
-              { text: q.rotulo, fontSize: 6, alignment: 'center', margin: [0, 2, 0, 0], width: 118 }
+              { text: q.rotulo, fontSize: 6, alignment: 'center', margin: [0, 2, 0, 0], width: 118 },
+              ...(q.codigo ? [{ text: 'Código: ' + q.codigo, bold: true, fontSize: 8, alignment: 'center', margin: [0, 1, 0, 0] }] : [])
             ] })), columnGap: 6, alignment: 'center' }
         ]]
       } : {
@@ -1020,6 +1021,7 @@ async function gerarOrdemDeServicoPdfmake(gruposOcultarProduto) {
         q.texto ? { qr: q.texto, fit: 118, eccLevel: 'M', alignment: 'center', margin: [0, 4, 0, 4] } : { ...{ canvas: [{ type: 'rect', x: 0, y: 0, w: 118, h: 118, lineWidth: 1, lineColor: '#999999' }], alignment: 'center' }, margin: [0, 4, 0, 4] },
         { text: sanitize(q.nome), bold: true, fontSize: 8, alignment: 'center' },
         { text: [{ text: 'Ambiente: ', bold: true }, sanitize(q.area || '-')], fontSize: 8, alignment: 'center', margin: [0, 2, 0, 0] },
+        ...(q.codigo ? [{ text: 'Código manual: ' + q.codigo, bold: true, fontSize: 10, alignment: 'center', margin: [0, 3, 0, 0] }] : []),
       ],
       margin: [4, 6, 4, 6],
     });
@@ -1077,10 +1079,13 @@ function qrApontamentoGrupo(g, { numeroPedido, nomeCliente }) {
   const acabados = g.itens.filter(it => it.utilizacao === 'Produto Acabado');
   const produtos = acabados.length ? acabados.map(it => it.nomeBruto || it.descricao) : [salvo.nome || g.nomeGrupo];
 
+  // Código manual (pedido-item) de cada produto, para quem não consegue ler o QR (formulaValores.js)
+  const codigos = (typeof window.codigosApontamento === 'function' ? window.codigosApontamento() : []).filter(c => c.grupoId === g.grupoId);
   const qrs = [];
-  for (const nome of produtos) {
+  for (const [i, nome] of produtos.entries()) {
+    const codigo = (codigos.find(c => c.nome === nome) || codigos[i] || {}).codigo || '';
     const texto = 'UM2:' + [propId, grupoId, qrCampo(nome, 500), qrCampo(numeroPedido, 12), qrCampo(nomeCliente, 30), qrCampo(area, 80)].join('|');
-    qrs.push({ texto: produtoSemQr(nome) ? null : texto, rotulo: nome.length > 40 ? nome.slice(0, 38) + '…' : nome, nome, area });
+    qrs.push({ texto: produtoSemQr(nome) ? null : texto, rotulo: nome.length > 40 ? nome.slice(0, 38) + '…' : nome, nome, area, codigo: produtoSemQr(nome) ? '' : codigo });
   }
   return qrs;
 }

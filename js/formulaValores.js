@@ -757,6 +757,7 @@ function criarBlocoDeProposta(nomeGrupo = "", ambiente = "") {
                 ${estaEditandoModelo ? 'style="display:none;"' : ''}>
               <button class="btn btn-outline-danger btn-sm" type="button" onclick="removerBloco('${idSuffix}')" title="Excluir grupo">Excluir</button>
               <button class="btn btn-outline-secondary btn-sm" type="button" onclick="duplicarBlocoViaDOM('${idSuffix}')" title="Duplicar grupo">Duplicar</button>
+              <button class="btn btn-outline-primary btn-sm" type="button" onclick="copiarCodigoApontamento('${idSuffix}', this)" title="Copiar o código do produto para o app de apontamento (no lugar do QR code)"${estaEditandoModelo ? ' style="display:none;"' : ''}>Código</button>
             </div>
           </div>
         </h2>
@@ -1081,5 +1082,72 @@ document.addEventListener("change", function (e) {
   });
 });
 
+// ── Código de apontamento: "pedido-item" (ex.: 26203-3), digitado no app de apontamento no lugar do QR ──
+// O item é o mesmo "Item N" do sistema de produção: conta os Produtos Acabados de todos os grupos, na ordem
+// (grupo sem Produto Acabado conta como 1). O app de produção resolve o código pelo pedido salvo.
+const _SEM_APONT = ['vidro', 'instalacao', 'servico de instalacao', 'despesa de viagem / logistica', 'despesas de viagem / logistica', 'servico de terceiros'];
+const _semAcentoCod = s => String(s || '').normalize('NFD').replace(/\p{M}/gu, '').trim().toLowerCase();
+window.codigosApontamento = function () {
+  const num = (document.getElementById('numeroPedido')?.value || '').trim();
+  const out = []; let idx = 0;
+  document.querySelectorAll("table[id^='tabela-bloco-']").forEach(t => {
+    const gid = t.id.replace('tabela-', '').trim();
+    const acabados = Array.from(t.querySelectorAll('tbody tr'))
+      .filter(tr => !tr.querySelector('td[colspan]') && !tr.classList.contains('extra-summary-row') && tr.querySelectorAll('td').length >= 2)
+      .map(tr => { const td = tr.querySelectorAll('td');
+        return { uso: (td[0].querySelector('textarea')?.value ?? td[0].textContent).trim(), nome: td[1].textContent.trim() }; })
+      .filter(x => x.uso === 'Produto Acabado' && x.nome && x.nome !== '-')
+      .map(x => x.nome);
+    const titulo = document.getElementById('titulo-accordion-' + gid)?.textContent?.trim() || '';
+    for (const nome of acabados.length ? acabados : [titulo]) {
+      idx++;
+      const n = _semAcentoCod(nome);
+      out.push({ grupoId: gid, item: idx, nome, codigo: num && num !== '-' ? `${num}-${idx}` : null,
+        semApontamento: _SEM_APONT.includes(n) || n.includes('faturamento direto') });
+    }
+  });
+  return out;
+};
 
+async function _copiarTexto(txt) {
+  try { await navigator.clipboard.writeText(txt); return true; }
+  catch (_) {
+    const ta = Object.assign(document.createElement('textarea'), { value: txt });
+    ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand('copy'); ta.remove(); return ok;
+  }
+}
 
+// Botão "Código" do grupo: copia o código do produto (com vários Produtos Acabados, mostra a lista)
+window.copiarCodigoApontamento = async function (grupoId, botao) {
+  document.getElementById('pop-cod-apont')?.remove();
+  const lista = window.codigosApontamento();
+  if (!lista.length || !lista[0].codigo) return alert('Este orçamento ainda não tem número de pedido: o código de apontamento só existe depois que vira pedido.');
+  const doGrupo = lista.filter(x => x.grupoId === grupoId);
+  const copiar = async (x, alvo) => {
+    if (await _copiarTexto(x.codigo)) {
+      const antes = alvo.textContent; alvo.textContent = 'Copiado ' + x.codigo; alvo.disabled = true;
+      setTimeout(() => { alvo.textContent = antes; alvo.disabled = false; }, 2000);
+    } else prompt('Copie o código:', x.codigo);
+  };
+  if (!doGrupo.some(x => !x.semApontamento)) return alert('Este grupo não tem produto com apontamento de produção (vidro, instalação, serviço ou faturamento direto).');
+  if (doGrupo.length === 1) return copiar(doGrupo[0], botao);
+
+  // Vários produtos no grupo: lista para escolher qual copiar
+  const pop = document.createElement('div');
+  pop.id = 'pop-cod-apont';
+  pop.style.cssText = 'position:absolute;z-index:2000;background:#fff;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:8px;min-width:280px;max-width:420px';
+  pop.innerHTML = '<div style="font-size:12px;color:#475569;margin-bottom:6px">Código para o app de apontamento:</div>' +
+    doGrupo.map((x, i) => `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-top:${i ? '1px solid #eef2f7' : '0'}">
+      <span style="flex:1;font-size:12px">Item ${x.item} — ${x.nome.replace(/[<>&]/g, '')}</span>
+      ${x.semApontamento ? '<span style="font-size:11px;color:#94a3b8">sem apontamento</span>'
+        : `<button type="button" class="btn btn-sm btn-outline-primary" data-i="${i}">${x.codigo}</button>`}</div>`).join('');
+  const r = botao.getBoundingClientRect();
+  pop.style.top = (r.bottom + window.scrollY + 4) + 'px';
+  pop.style.left = Math.max(8, r.right + window.scrollX - 300) + 'px';
+  document.body.appendChild(pop);
+  pop.querySelectorAll('button[data-i]').forEach(b => b.onclick = () => copiar(doGrupo[+b.dataset.i], b));
+  setTimeout(() => document.addEventListener('click', function fechar(ev) {
+    if (!pop.contains(ev.target)) { pop.remove(); document.removeEventListener('click', fechar); }
+  }), 0);
+};
