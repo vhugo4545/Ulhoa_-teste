@@ -701,6 +701,81 @@
         });
       </script>
 
+      <!-- Card: Regra de porcentagem mínima (CFG.regraPorcentagemMinima — js/bloqueioPorcentagem.js) -->
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-title">
+          <span class="material-icons-outlined">percent</span>
+          Regra de porcentagem mínima
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;">
+          Com a regra ligada, cada produto da proposta tem as porcentagens do Resumo (Miudezas, Gastos Operacionais, Impostos,
+          Mg. Segurança, Comissão Arquiteta, Negociação, Valor Sugerido e Margem de Lucro) comparadas com a porcentagem mínima
+          cadastrada para o produto de mesmo nome na proposta modelo (Editar Modelo). Se alguma ficar abaixo, o orçamento trava
+          o que estiver marcado abaixo até o aprovador principal (Trava por valor do orçamento) liberar. A liberação vale enquanto
+          nenhuma porcentagem baixar do que foi aprovado. Admins e gestores não são bloqueados.
+        </p>
+        <label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);">
+          <input type="checkbox" id="rpm-ativo" style="width:18px;height:18px;cursor:pointer;accent-color:#16a34a;">
+          <span id="rpm-ativo-label">Regra desligada</span>
+        </label>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin:16px 0 8px;">PDFs e ações bloqueados</div>
+        <div id="rpm-acoes" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap;">
+          <button class="cfg-save-btn" onclick="salvarRegraPorcentagemMinima()">
+            <span class="material-icons-outlined">cloud_upload</span> Salvar
+          </button>
+          <span class="cfg-status" id="cfg-status-rpm"></span>
+        </div>
+      </div>
+      <script>
+        // CFG.regraPorcentagemMinima = { ativo, pdfs: { idDoBotao: true }, bloquearOmie, bloquearSalvar }
+        const RPM_ACOES = [
+          { id: "btn-visualizar-proposta", label: "Proposta (PDF do orçamento)", padrao: true },
+          { id: "btn-folhas-impressao",    label: "Folhas de Impressão (todas)", padrao: true },
+          { id: "btn-folha-ordem-servico", label: "Ordem de Serviço",            padrao: true },
+          { id: "btn-etapas-processo",     label: "Etapas do Processo",          padrao: true },
+          { id: "btn-historico-producao",  label: "Relatório de Entrega / Instalação", padrao: true },
+          { id: "salvar",                  label: "Salvar proposta",             padrao: false },
+          { id: "omie",                    label: "Enviar para Omie",            padrao: true },
+        ];
+        function rpmRenderizar() {
+          const cfg = window.CFgAPI?.obter()?.regraPorcentagemMinima;
+          const cb = document.getElementById("rpm-ativo");
+          if (!cb) return;
+          cb.checked = !!cfg?.ativo;
+          document.getElementById("rpm-ativo-label").textContent = cb.checked ? "Regra ligada" : "Regra desligada";
+          const marcado = a => !cfg ? a.padrao
+            : a.id === "salvar" ? !!cfg.bloquearSalvar : a.id === "omie" ? !!cfg.bloquearOmie : !!cfg.pdfs?.[a.id];
+          document.getElementById("rpm-acoes").innerHTML = RPM_ACOES.map(a => `
+            <label style="display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid #fdba74;border-radius:8px;background:#fff7ed;color:#9a3412;font-size:13px;cursor:pointer;">
+              <input type="checkbox" data-rpm="${a.id}" ${marcado(a) ? "checked" : ""} style="accent-color:#c2410c;width:15px;height:15px;"> 🔒 ${a.label}
+            </label>`).join("");
+        }
+        async function salvarRegraPorcentagemMinima() {
+          const statusEl = document.getElementById("cfg-status-rpm");
+          const m = id => !!document.querySelector(`[data-rpm="${id}"]`)?.checked;
+          const regra = {
+            ativo: !!document.getElementById("rpm-ativo")?.checked,
+            pdfs: Object.fromEntries(RPM_ACOES.filter(a => a.id.startsWith("btn-")).map(a => [a.id, m(a.id)])),
+            bloquearOmie: m("omie"),
+            bloquearSalvar: m("salvar"),
+          };
+          if (statusEl) statusEl.textContent = "Salvando…";
+          const ok = await window.CFgAPI?.salvarChave?.("regraPorcentagemMinima", regra);
+          if (statusEl) {
+            statusEl.textContent = ok ? "Salvo!" : "Não consegui salvar. Tente de novo.";
+            setTimeout(() => statusEl.textContent = "", 3000);
+          }
+        }
+        document.addEventListener("DOMContentLoaded", () => {
+          document.getElementById("rpm-ativo")?.addEventListener("change", e => {
+            document.getElementById("rpm-ativo-label").textContent = e.target.checked ? "Regra ligada" : "Regra desligada";
+          });
+          rpmRenderizar();
+          setTimeout(rpmRenderizar, 1500); // configurações do servidor chegam depois do cache local
+        });
+      </script>
+
       <!-- Card: Criar proposta fora da Kommo (CFG.criarPropostaSoGestor — js/regraCriarProposta.js) -->
       <div class="card" style="grid-column: 1 / -1;">
         <div class="card-title">
@@ -948,7 +1023,7 @@
     </div>
   </main>
 
-  <script src="../js/configuracoes.js?v=cf1"></script>
+  <script src="../js/configuracoes.js?v=pm2"></script>
   <script>
   // ── Visibilidade de Botões por Status ────────────────────────────────────
   const VIS_BOTOES = [

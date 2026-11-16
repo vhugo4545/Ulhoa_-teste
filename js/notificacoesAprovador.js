@@ -82,8 +82,9 @@
   }
 
   // Cada pedido vira { origem, doc }: valor | etapa | produto | minimo | status
-  const origemValor = d => (d.tipo === "etapa" ? "etapa" : "valor");
-  const ROTULO = { valor: "Valor acima do limite", etapa: "Etapa da Kommo", produto: "Produto desatualizado", minimo: "Valor mínimo", status: "Status do PDV" };
+  const origemValor = d => (d.tipo === "etapa" ? "etapa" : d.tipo === "porcentagem" ? "porcentagem" : "valor");
+  const ROTULO = { valor: "Valor acima do limite", etapa: "Etapa da Kommo", porcentagem: "Porcentagem mínima", produto: "Produto desatualizado", minimo: "Valor mínimo", status: "Status do PDV" };
+  const fmtPct = n => (Number(n) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
   const urlEditar = d => `editar.html?id=${encodeURIComponent(d.propostaId || d._id)}`;
   const urlModelo = d => `modelo.html?id=${encodeURIComponent(d.propostaId || d._id)}`;
 
@@ -117,6 +118,7 @@
 
   function destaque(origem, d) {
     if (origem === "etapa")   return "Etapa: " + esc(d.nomeEtapa || d.statusId);
+    if (origem === "porcentagem") { const n = (d.detalhes || []).length; return n === 1 ? "1 referencial abaixo" : `${n} referenciais abaixo`; }
     if (origem === "valor")   return fmtBRL(d.valorTotal);
     if (origem === "produto") return `${(d.produtos || []).length} produto(s)`;
     if (origem === "minimo")  return fmtBRL(d.valorFinal);
@@ -125,10 +127,20 @@
 
   function descricao(origem, d) {
     if (origem === "etapa")   return "Desbloqueio da etapa da Kommo";
+    if (origem === "porcentagem") return "Porcentagem abaixo da mínima do produto (proposta modelo)";
     if (origem === "valor")   return `Valor acima do limite de ${fmtBRL(d.valorLimite)}`;
     if (origem === "produto") return `Liberação do PDF · produtos alterados na Omie há mais de ${d.limiteDias || "—"} dias`;
     if (origem === "minimo")  return `Abaixo do valor mínimo de ${fmtBRL(d.valorMinimo)}`;
     return `Status do orçamento no PDV pendente de aprovação${d.updatedAt ? " · atualizado em " + fmtData(d.updatedAt) : ""}`;
+  }
+
+  // Porcentagem mínima: produto, referencial, atual e mínimo
+  function listaPorcentagens(d) {
+    const it = d.detalhes || [];
+    if (!it.length) return "";
+    return `<ul style="margin:6px 0 0;padding-left:18px;font-size:12px;color:#64748b;">${
+      it.slice(0, 5).map(x => `<li>${esc(x.produto)}: ${esc(x.label)} <b>${fmtPct(x.atual)}</b> (mínimo ${fmtPct(x.minimo)})</li>`).join("")
+    }${it.length > 5 ? `<li>… e mais ${it.length - 5}</li>` : ""}</ul>`;
   }
 
   function listaProdutos(d) {
@@ -143,6 +155,7 @@
     if (d.status !== "aprovado") return "";
     if (origem === "etapa")   return d.modo === "sempre" ? " em qualquer etapa" : ` na etapa ${esc(d.nomeEtapa || "")}`;
     if (origem === "valor")   return d.modo === "sempre" ? " para qualquer valor" : ` até ${fmtBRL(d.valorAprovado)}`;
+    if (origem === "porcentagem") return " enquanto as porcentagens não baixarem";
     if (origem === "produto") return " · PDF liberado";
     return "";
   }
@@ -161,7 +174,7 @@
           ${etiqueta(origem, "#475569", "#f1f5f9")}
           <span class="lv-meta" style="margin:0;">${destaque(origem, d)} · ${descricao(origem, d)}</span>
         </div>
-        ${origem === "produto" ? listaProdutos(d) : ""}
+        ${origem === "produto" ? listaProdutos(d) : origem === "porcentagem" ? listaPorcentagens(d) : ""}
         <div class="lv-meta">Pedido por ${esc(d.solicitante || "—")} em ${fmtData(d.dataHora)}</div>
         ${d.justificativa ? `<div class="lv-meta" style="color:#334155;">💬 ${esc(d.justificativa)}</div>` : ""}
         <div class="lv-meta" style="color:#334155;font-weight:600;">${ok ? "Liberado" : "Negado"}${escopoDecisao(origem, d)} por ${esc(d.aprovador || "—")} em ${fmtData(d.dataAprovacao)}</div>
@@ -296,7 +309,7 @@
     };
 
     async function decidir(origem, id, status, modo, observacao) {
-      const url = origem === "valor" || origem === "etapa" ? API.valor : API[origem];
+      const url = origem === "valor" || origem === "etapa" || origem === "porcentagem" ? API.valor : API[origem];
       const r = await fetch(`${url}/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -314,12 +327,13 @@
 
     function botoesDecisao(origem, d) {
       const negar = `<button type="button" data-a="negar" style="background:#fff;color:#b91c1c;border-color:#fca5a5;">Negar</button>`;
-      if (origem === "valor" || origem === "etapa") {
+      if (origem === "valor" || origem === "etapa" || origem === "porcentagem") {
         // Todos veem o pedido, mas só o responsável (faixa do total ou principal) decide
-        const resp = responsavelPedido(lv, origem === "etapa" ? undefined : d.valorTotal);
+        const resp = responsavelPedido(lv, origem === "valor" ? d.valorTotal : undefined);
         if (!souEu(resp)) {
           return `<span style="padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#f1f5f9;color:#475569;display:inline-flex;align-items:center;gap:5px;"><span class="material-icons-outlined" style="font-size:15px;">person</span>Quem decide: ${esc(resp.nome)}</span>`;
         }
+        if (origem === "porcentagem") return `<button type="button" data-a="porcentagem" style="background:#16a34a;color:#fff;">Liberar</button>${negar}`;
         return `<button type="button" data-a="sempre" style="background:#16a34a;color:#fff;">Liberar para sempre</button>
           ${origem === "etapa"
             ? `<button type="button" data-a="etapa" style="background:#0f766e;color:#fff;">Liberar só nesta etapa</button>`
@@ -347,7 +361,7 @@
         </div>
         <div style="margin-top:4px;">${etiqueta(origem)}</div>
         <div class="lv-meta">${descricao(origem, d)}${d.solicitante ? ` · pedido por ${esc(d.solicitante)} em ${fmtData(d.dataHora)}` : ""}</div>
-        ${origem === "produto" ? listaProdutos(d) : ""}
+        ${origem === "produto" ? listaProdutos(d) : origem === "porcentagem" ? listaPorcentagens(d) : ""}
         ${d.justificativa ? `<div class="lv-meta" style="color:#334155;">💬 ${esc(d.justificativa)}</div>` : ""}
         <div class="lv-acoes">${botoesDecisao(origem, d)}${link}</div>
         <div class="lv-motivo">
