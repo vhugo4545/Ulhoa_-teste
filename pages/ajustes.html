@@ -776,6 +776,62 @@
         });
       </script>
 
+      <!-- Card: Visão macro — prazo de cada etapa (CFG.visaoMacroPrazos — js/visaoMacro.js) -->
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-title">
+          <span class="material-icons-outlined">timeline</span>
+          Visão macro: prazo de cada etapa
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;">
+          Na página <a href="visao-macro.html">Visão macro</a>, o pedido fica vermelho quando passa mais dias na etapa atual do que o prazo
+          abaixo (dias corridos desde que entrou na etapa). Sem mudança há 7 dias ou mais, ele aparece como parado. Deixe em branco para não ter prazo.
+        </p>
+        <div id="vmp-campos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px 16px;"></div>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap;">
+          <button class="cfg-save-btn" onclick="salvarPrazosVisaoMacro()">
+            <span class="material-icons-outlined">cloud_upload</span> Salvar
+          </button>
+          <button class="cfg-save-btn" style="background:transparent;color:var(--text);border:1px solid var(--border);" onclick="vmpRenderizar(true)">Voltar ao padrão</button>
+          <span class="cfg-status" id="cfg-status-vmp"></span>
+        </div>
+      </div>
+      <script>
+        // mesma ordem e mesmos padrões de js/visaoMacro.js (PRAZOS_PADRAO)
+        const VMP_ETAPAS = ["Contato","Reunião","Orçamento","Proposta","Negociação","Pedido emitido","Entrada paga","Medição / Projeto",
+          "Aprovação do projeto","Compra de material / vidro","Produção","Instalação","Vidro instalado","Finalizado"];
+        const VMP_PADRAO = [2,7,3,5,15,5,7,10,7,15,30,10,10,30];
+        function vmpRenderizar(padrao) {
+          const cfg = padrao ? null : window.CFgAPI?.obter()?.visaoMacroPrazos;
+          const el = document.getElementById("vmp-campos");
+          if (!el) return;
+          el.innerHTML = VMP_ETAPAS.map((n, i) => {
+            const v = cfg && cfg[i] !== undefined ? (cfg[i] ?? "") : VMP_PADRAO[i];
+            return `<label style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:var(--text);padding:6px 10px;border:1px solid var(--border);border-radius:8px;">
+              <span>${n}</span>
+              <span style="display:flex;align-items:center;gap:6px;"><input type="number" min="0" max="365" step="1" data-vmp="${i}" value="${v}" style="width:64px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font:inherit;text-align:right;"> <span style="color:var(--text-muted);font-size:12px;">dias</span></span>
+            </label>`;
+          }).join("");
+        }
+        async function salvarPrazosVisaoMacro() {
+          const statusEl = document.getElementById("cfg-status-vmp");
+          const prazos = VMP_ETAPAS.map((_, i) => {
+            const v = document.querySelector(`[data-vmp="${i}"]`)?.value;
+            return v === "" || v == null ? null : Math.max(0, Math.round(Number(v)));
+          });
+          if (prazos.some(v => v !== null && !Number.isFinite(v))) { if (statusEl) statusEl.textContent = "Use só números inteiros."; return; }
+          if (statusEl) statusEl.textContent = "Salvando…";
+          const ok = await window.CFgAPI?.salvarChave?.("visaoMacroPrazos", prazos);
+          if (statusEl) {
+            statusEl.textContent = ok ? "Salvo!" : "Não consegui salvar. Tente de novo.";
+            setTimeout(() => statusEl.textContent = "", 3000);
+          }
+        }
+        document.addEventListener("DOMContentLoaded", () => {
+          vmpRenderizar();
+          setTimeout(() => vmpRenderizar(), 1500); // configurações do servidor chegam depois do cache local
+        });
+      </script>
+
       <!-- Card: Criar proposta fora da Kommo (CFG.criarPropostaSoGestor — js/regraCriarProposta.js) -->
       <div class="card" style="grid-column: 1 / -1;">
         <div class="card-title">
