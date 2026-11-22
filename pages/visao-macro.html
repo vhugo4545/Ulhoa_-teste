@@ -8,13 +8,19 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
   <style>
-    .content{margin-left:220px;padding:28px 32px;min-height:100vh;background:var(--bg);overflow:auto;flex:1;min-width:0}
+    .content{margin-left:220px;padding:28px 32px;height:100vh;background:var(--bg);overflow:auto;flex:1;min-width:0;display:block}
     .vm-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
     .vm-top h2{font-size:18px;font-weight:600;color:var(--text);margin-right:auto}
     .vm-info{font-size:12px;color:var(--text-muted)}
     .vm-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
     .vm-bar select,.vm-bar input{height:34px;border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:0 10px;font:inherit;font-size:13px;color:var(--text)}
-    .vm-bar input{width:220px}
+    .vm-fixo{position:sticky;top:-28px;z-index:5;background:var(--bg);margin:-28px -32px 14px;padding:28px 32px 6px;border-bottom:1px solid transparent}
+    .vm-fixo.sombra{border-bottom-color:var(--border);box-shadow:0 6px 12px -10px rgba(15,23,42,.25)}
+    .vm-busca{position:relative;flex:1;min-width:240px;max-width:460px}
+    .vm-busca .material-icons-outlined{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:19px;color:var(--text-muted);pointer-events:none}
+    .vm-bar .vm-busca input{width:100%;height:38px;padding-left:36px;font-size:14px;border-color:#cbd5e1}
+    .vm-bar .vm-busca input:focus{outline:none;border-color:var(--text)}
+    .vm-mais{display:block;margin:12px auto 0}
     .vm-seg{display:inline-flex;background:#e2e8f0;border-radius:9px;padding:3px;gap:2px}
     .vm-seg button{border:none;background:none;height:28px;padding:0 12px;border-radius:7px;font:inherit;font-size:12.5px;font-weight:600;color:var(--text-muted);cursor:pointer}
     .vm-seg button.on{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
@@ -30,7 +36,7 @@
     .vm-cab,.vm-row{display:grid;grid-template-columns:230px minmax(0,1fr);gap:16px}
     .vm-track{display:grid;grid-template-columns:repeat(15,minmax(0,1fr));gap:4px;align-items:center}
     .vm-hd span{font-size:10.5px;color:var(--text-muted);writing-mode:vertical-rl;transform:rotate(180deg);height:118px;white-space:nowrap;justify-self:center;line-height:1}
-    .vm-cab{position:sticky;top:0;background:var(--surface);z-index:2;padding:8px 0 6px;border-bottom:1px solid var(--border)}
+    .vm-cab{background:var(--surface);padding:8px 0 6px;border-bottom:1px solid var(--border)}
     .vm-row{padding:11px 4px;border-bottom:1px solid #f1f5f9;cursor:pointer}
     .vm-row:hover,.vm-row.aberto{background:#f8fafc}
     .vm-track i{display:block;height:11px;border-radius:3px;background:#e2e8f0}
@@ -62,7 +68,7 @@
     .vm-card.c-atrasado{border-left:3px solid #E24B4A;border-radius:0 8px 8px 0}.vm-card.c-parado{border-left:3px solid #EF9F27;border-radius:0 8px 8px 0}
     .vm-vazio{padding:40px 10px;text-align:center;font-size:13px;color:var(--text-muted)}
     .vm-erro{color:#b91c1c}
-    @media (max-width:900px){.content{margin-left:0;padding:18px 14px}.vm-kpis{grid-template-columns:1fr 1fr}.vm-cab,.vm-row{grid-template-columns:1fr}.vm-cab>div:first-child{display:none}.vm-bar input{width:100%}}
+    @media (max-width:900px){.content{margin-left:0;padding:18px 14px}.vm-kpis{grid-template-columns:1fr 1fr}.vm-cab,.vm-row{grid-template-columns:1fr}.vm-cab>div:first-child{display:none}.vm-fixo{top:-18px;margin:-18px -14px 12px;padding:18px 14px 6px}.vm-busca{max-width:none}}
   </style>
 </head>
 <body>
@@ -79,6 +85,7 @@
   </aside>
 
   <main class="content">
+    <div class="vm-fixo" id="vm-fixo">
     <div class="vm-top">
       <h2>Visão macro do processo</h2>
       <span class="vm-info" id="vm-info"></span>
@@ -88,7 +95,9 @@
       <div class="vm-seg"><button id="bt-linha" onclick="VM.modo('linha')">Linha do tempo</button><button id="bt-kanban" onclick="VM.modo('kanban')">Kanban</button></div>
       <select id="vm-vend" onchange="VM.filtrar()"><option value="">Todos os vendedores</option></select>
       <select id="vm-mes" onchange="VM.filtrar()"><option value="">Emitidos em: todos</option></select>
-      <input id="vm-busca" type="search" placeholder="Pedido, orçamento ou cliente" oninput="VM.filtrar()" />
+    </div>
+    <div class="vm-bar">
+      <label class="vm-busca"><span class="material-icons-outlined">search</span><input id="vm-busca" type="search" placeholder="Buscar pedido, orçamento, cliente ou vendedor" oninput="VM.buscar()" /></label>
     </div>
     <div class="vm-bar">
       <span class="vm-m">Situação</span>
@@ -97,6 +106,7 @@
       <button class="vm-chip" data-sit="parado" onclick="VM.sit('parado')">Parados<b>—</b></button>
       <button class="vm-chip" data-sit="prazo" onclick="VM.sit('prazo')">No prazo<b>—</b></button>
       <button class="vm-chip" data-sit="fim" onclick="VM.sit('fim')">Recebidos<b>—</b></button>
+    </div>
     </div>
     <div class="vm-kpis" id="vm-kpis"></div>
     <div id="vm-corpo"><div class="vm-vazio">Carregando…</div></div>
@@ -107,7 +117,8 @@
   <script src="../js/utils.js" defer></script>
   <script src="../js/validarToken.js" defer></script>
   <script src="../js/configuracoes.js?v=pm2"></script>
-  <script src="../js/visaoMacro.js?v=vm1"></script>
-  <script>document.addEventListener("DOMContentLoaded",()=>{if(typeof verificarTokenOuRedirecionar==="function")verificarTokenOuRedirecionar();});</script>
+  <script src="../js/visaoMacro.js?v=vm2"></script>
+  <script>document.querySelector(".content").addEventListener("scroll",e=>document.getElementById("vm-fixo").classList.toggle("sombra",e.target.scrollTop>8),{passive:true});
+  document.addEventListener("DOMContentLoaded",()=>{if(typeof verificarTokenOuRedirecionar==="function")verificarTokenOuRedirecionar();});</script>
 </body>
 </html>
