@@ -349,6 +349,21 @@ document.addEventListener("DOMContentLoaded", async () => {
           ">
           Visualizar RELATORIO DE ENTREGA / INSTALAÇÃO
         </button>
+
+        <button type="button" id="btn-folha-projeto"
+          style="
+            width:100%;
+            border:none;
+            background:#b45309;
+            color:#fff;
+            padding:14px 16px;
+            border-radius:12px;
+            cursor:pointer;
+            font-size:14px;
+            font-weight:600;
+          ">
+          Visualizar FOLHA DE PROJETO
+        </button>
       </div>
     `;
 
@@ -385,6 +400,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       fechar();
       if (!await validarItensZeradosParaImpressao()) return;
       gerarHistoricoDeProducaoParaImpressao();
+    });
+
+    document.getElementById("btn-folha-projeto").addEventListener("click", () => {
+      fechar();
+      abrirFolhaDeProjeto();
     });
   }
 </script>
@@ -1871,6 +1891,7 @@ Instagram: </textarea>
   <script src="../js/formulas.js" defer></script>
 
   <script src="../js/imprimir.js?v=rap1" defer></script>
+  <script src="../js/folhaProjeto.js?v=fp1" defer></script>
   <script src="../js/gerarPdfmake.js?v=cod1" defer></script>
   <script src="../js/enviarPropostas.js" defer></script>
   <script src="../js/carregamento.js" defer></script>
