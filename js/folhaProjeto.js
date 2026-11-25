@@ -19,7 +19,9 @@
       linhas: [[307.6, 498.2, 630.9, 498.2], [307.7, 467.7, 307.7, 566.9], [442.1, 531.4, 442.1, 566.9],
                [630.9, 467.7, 630.9, 566.9], [725.4, 531.4, 725.4, 566.9], [307.7, 531.4, 813.4, 531.4]],
       logo: [43.5, 479.7, 298.7, 550.6],
-      area: [40, 70, 801, 430],
+      // cabeçalho da folha: item (nº do PDV) + nome, área, prazo do item e QR; o projeto ocupa o resto da moldura
+      cab: { rot: [51.7, 43.2, 18], nomeFim: 725, area: [51.7, 72, 420, 90], prazo: [430, 72, 725, 90], qr: [737, 36, 801, 100] },
+      area: [40, 104, 801, 430],
       cel: {
         cliente: celula("CLIENTE :", 309.7, 472, [309.7, 482, 629, 497.5], 10),
         endereco: celula("ENDEREÇO :", 309.6, 500.3, [309.6, 511, 629, 530.5], 10),
@@ -38,7 +40,8 @@
       linhas: [[307.1, 498.4, 307.1, 567.1], [435.2, 531.4, 435.2, 566.9], [556.1, 498.4, 556.1, 531.6],
                [623.4, 531.8, 623.4, 567.3], [729.6, 531.4, 729.6, 566.9], [307.3, 531.4, 813.5, 531.4]],
       logo: [41.1, 504.5, 296.3, 559],
-      area: [40, 70, 801, 398],
+      cab: { rot: [35.1, 44.8, 18], nomeFim: 725, area: [35.1, 72, 420, 90], prazo: [430, 72, 725, 90], qr: [737, 36, 801, 100] },
+      area: [40, 104, 801, 398],
       cel: {
         cliente: celula("CLIENTE :", 309.1, 502.1, [309.1, 511.5, 554, 530.5], 10),
         endereco: celula("ENDEREÇO :", 559.3, 501.3, [559.3, 513, 811.5, 530.5], 10),
@@ -55,7 +58,8 @@
       linhas: [[28.3, 754, 567.1, 754], [254.9, 754, 254.9, 822.7], [254.9, 787.2, 566.9, 787.2], [377, 754, 377, 787.2],
                [341.8, 787.2, 341.8, 822.7], [440.1, 787, 440.1, 822.5], [502, 786.6, 502, 822]],
       logo: [33.7, 762.1, 240.9, 816.6],
-      area: [40, 40, 555, 745],
+      cab: { rot: [40, 40, 14], nomeFim: 480, area: [40, 66, 290, 84], prazo: [290, 66, 480, 84], qr: [490, 34, 555, 99] },
+      area: [40, 106, 555, 745],
       cel: {
         cliente: celula("CLIENTE :", 256.9, 755.7, [256.9, 766, 375.5, 786.5], 8),
         endereco: celula("ENDEREÇO :", 379, 756.9, [379, 766, 565.5, 786.5], 8),
@@ -64,7 +68,7 @@
         data: celula("DATA :", 442.1, 789.9, [442.1, 799, 500.5, 821.5], 8),
         folha: celula("FOLHA :", 504, 789.4, [504, 799, 565.5, 821.5], 8),
       },
-      campos: [],
+      campos: ["item"],
     },
   };
 
@@ -81,6 +85,11 @@
 
   // cortarPalavra=false: se uma palavra sozinha não cabe na linha, devolve null (quem chama reduz a fonte em vez de partir a palavra)
   function quebrar(texto, larg, tam, fam, cortarPalavra) {
+    // quebra de linha pedida de propósito ("\n"): cada trecho é ajustado separado
+    if (/\n/.test(String(texto))) {
+      const partes = String(texto).split(/\n+/).map((p) => quebrar(p, larg, tam, fam, cortarPalavra));
+      return partes.some((p) => p === null) ? null : [].concat(...partes);
+    }
     const medir = (t) => larguraPt(t, tam, fam);
     const palavras = String(texto).replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
     const linhas = [];
@@ -173,12 +182,29 @@
       const aj = ajustar(valor, caixa[2] - caixa[0], caixa[3] - caixa[1], 12, 6, FONTE_CARIMBO);
       return `<div class="abs val esq" style="left:${x0}pt;top:${y}pt;width:${xmax - x0}pt;height:${ymax - y}pt;font-size:${aj.tam}pt">${esc(aj.linhas.join("\n"))}</div>`;
     };
+    // cabeçalho: ITEM nº (numeração do PDV) + nome do item, ÁREA, PRAZO DO ITEM e QR do item
+    const h = m.cab;
+    const rotItem = m === MODELOS.sem ? (d.itens || "ITENS") : (d.item || (m === MODELOS.com ? "ITEM 01" : ""));
+    if (rotItem) {
+      html += rotulo(rotItem, h.rot[0], h.rot[1], h.rot[2], FONTE_ROTULO);
+      if (d.itemNome) {
+        const x0 = h.rot[0] + larguraPt(rotItem, h.rot[2], FONTE_ROTULO) + 12, y0 = h.rot[1] - 2, y1 = h.rot[1] + h.rot[2] + 8;
+        const aj = ajustar(d.itemNome, h.nomeFim - x0, y1 - y0, 12, 6, FONTE_CARIMBO);
+        html += `<div class="abs val esq" style="left:${x0}pt;top:${y0}pt;width:${h.nomeFim - x0}pt;height:${y1 - y0}pt;font-size:${aj.tam}pt">${esc(aj.linhas.join("\n"))}</div>`;
+      }
+    }
+    const linhaCab = (txt, [a, b, e, f]) => {
+      const aj = ajustar(txt, e - a, f - b, 10, 6, FONTE_CARIMBO);
+      return `<div class="abs val esq" style="left:${a}pt;top:${b}pt;width:${e - a}pt;height:${f - b}pt;font-size:${aj.tam}pt">${esc(aj.linhas.join("\n"))}</div>`;
+    };
+    if (d.area) html += linhaCab("ÁREA: " + d.area, h.area);
+    if (d.prazo) html += linhaCab("PRAZO DO ITEM: " + d.prazo, h.prazo);
+    if (d.qr) html += `<div class="abs" style="left:${h.qr[0]}pt;top:${h.qr[1]}pt;width:${h.qr[2] - h.qr[0]}pt;height:${h.qr[3] - h.qr[1]}pt">${d.qr}</div>`;
+
     if (m === MODELOS.com) {
-      html += rotulo(d.item || "ITEM 01", 51.7, 43.2, 18, FONTE_ROTULO);
       html += rotulo("ACABAMENTO", 51.7, 437.9, 18, FONTE_ROTULO);
       html += complemento("ACABAMENTO", 51.7, 437.9, 18, FONTE_ROTULO, d.acabamento, 801, 463);
     } else if (m === MODELOS.sem) {
-      html += rotulo(d.itens || "ITENS", 35.1, 44.8, 18, FONTE_ROTULO);
       html += rotulo("PLANTA", 46.1, 408, 16, FONTE_PLANTA);
       html += rotulo("ACABAMENTO", 42.3, 468.9, 18, FONTE_ROTULO);
       html += complemento("ACABAMENTO", 42.3, 468.9, 18, FONTE_ROTULO, d.acabamento, 801, 495);
@@ -276,6 +302,31 @@
     return new URL("../js/logo.jpg", window.location.href).href;
   }
 
+  // ── Itens do pedido: a numeração é a do PDV (a mesma da OS e do apontamento: "pedido-item", ex.: 26203-3) ──
+  // O QR aponta para o Sistema de Produção (?pedido=&item=). ATENÇÃO: a Produção ainda não abre o pedido/item por esse link.
+  const URL_PRODUCAO = "https://app-producao-b843a894d7ea.herokuapp.com/";
+  function itensDoPedido() {
+    const base = typeof window.codigosApontamento === "function" ? window.codigosApontamento() : [];
+    return base.map((c) => {
+      const gid = c.grupoId;
+      const area = (document.querySelector(`input[data-id-grupo='${gid}'][placeholder='Ambiente']`)?.value || document.getElementById("titulo-accordion-" + gid)?.textContent || "").trim();
+      const prazo = (document.querySelector(`#${gid}-aba3 input[name="previsaoEntrega"]`)?.value || "").trim();
+      return { item: c.item, nome: c.nome, area, prazo, codigo: c.codigo };
+    });
+  }
+  const prazoTexto = (p) => (/^\d+$/.test(String(p || "")) ? p + " dias úteis" : String(p || ""));
+  const dataBR = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? `${m[3]}/${m[2]}/${m[1].slice(2)}` : ""; };
+  const hojeISO = () => { const h = new Date(); return h.getFullYear() + "-" + String(h.getMonth() + 1).padStart(2, "0") + "-" + String(h.getDate()).padStart(2, "0"); };
+  async function qrSvg(texto) {
+    try {
+      if (!window.qrcode) await new Promise((ok, erro) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"; s.onload = ok; s.onerror = erro; document.head.appendChild(s); });
+      const q = window.qrcode(0, "M"); q.addData(texto); q.make();
+      const n = q.getModuleCount(); let p = "";
+      for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) p += `M${c},${r}h1v1h-1z`;
+      return `<svg viewBox="-1 -1 ${n + 2} ${n + 2}" width="100%" height="100%" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"><path d="${p}" fill="#000"/></svg>`;
+    } catch (_) { return ""; }       // sem internet para carregar a biblioteca do QR: a folha sai sem QR
+  }
+
   // ── Janelas: 1) escolher o modelo  2) quantidade de folhas e dados de cada uma ──
   const ESTILO_BTN = "width:100%;border:none;color:#fff;padding:14px 16px;border-radius:12px;cursor:pointer;font-size:14px;font-weight:600;";
   const ESTILO_IN = "width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;";
@@ -305,7 +356,7 @@
       <div style="display:flex;flex-direction:column;gap:12px;">
         <button type="button" data-modelo="com" style="${ESTILO_BTN}background:#b45309;">Com fixação<br><span style="font-weight:400;font-size:12px;">A4 paisagem · item, acabamento e tipo de fixação</span></button>
         <button type="button" data-modelo="sem" style="${ESTILO_BTN}background:#92400e;">Sem fixação<br><span style="font-weight:400;font-size:12px;">A4 paisagem · itens, planta e acabamento</span></button>
-        <button type="button" data-modelo="ver" style="${ESTILO_BTN}background:#78350f;">Vertical<br><span style="font-weight:400;font-size:12px;">A4 retrato · só moldura e carimbo</span></button>
+        <button type="button" data-modelo="ver" style="${ESTILO_BTN}background:#78350f;">Vertical<br><span style="font-weight:400;font-size:12px;">A4 retrato · item, área e prazo no alto, carimbo no rodapé</span></button>
       </div>`;
     j.box.querySelector('[data-fp="fechar"]').onclick = j.fechar;
     j.box.querySelectorAll("[data-modelo]").forEach((b) => (b.onclick = () => formulario(j, b.dataset.modelo)));
@@ -340,7 +391,19 @@
     j.box.querySelector("#fp-voltar").onclick = () => { j.box.style.maxWidth = "420px"; abrirFolhaDeProjeto(); };
 
     const lista = j.box.querySelector("#fp-folhas");
-    const campo = (rot, id, ph, valor) => `<label style="display:block;font-size:11px;color:#4b5563;">${rot}<input type="text" data-c="${id}" placeholder="${esc(ph)}" value="${esc(valor || "")}" style="${ESTILO_IN}margin-top:3px;"></label>`;
+    const itens = itensDoPedido();
+    const campo = (rot, id, ph, valor, tipo) => `<label style="display:block;font-size:11px;color:#4b5563;">${rot}<input type="${tipo || "text"}" data-c="${id}" placeholder="${esc(ph)}" value="${esc(valor || "")}" style="${ESTILO_IN}margin-top:3px;"></label>`;
+    const opcoes = itens.map((it) => `<option value="${it.item}">${String(it.item).padStart(2, "0")} · ${esc(it.nome)}${it.area ? " (" + esc(it.area) + ")" : ""}</option>`).join("");
+    // escolher o item do pedido preenche item, nome, área e prazo (continuam editáveis)
+    const preencher = (div, it, folhaNum) => {
+      const set = (c, v) => { const el = div.querySelector(`[data-c="${c}"]`); if (el) el.value = v || ""; };
+      const nn = it ? String(it.item).padStart(2, "0") : "";
+      set("item", it ? "ITEM " + nn : (m === MODELOS.com ? "ITEM " + String(folhaNum).padStart(2, "0") : ""));
+      set("itens", it ? "ITENS " + nn : "ITENS");
+      set("itemNome", it ? it.nome : "");
+      set("area", it ? it.area : "");
+      set("prazo", it ? prazoTexto(it.prazo) : "");
+    };
     const desenharLinhas = () => {
       const n = Math.min(30, Math.max(1, parseInt(j.box.querySelector("#fp-qtd").value, 10) || 1));
       const atuais = Array.from(lista.children);
@@ -350,18 +413,35 @@
         div.style.cssText = "border:1px solid #e5e7eb;border-radius:12px;padding:12px;";
         const ant = atuais.length ? atuais[atuais.length - 1] : null;
         const herda = (c) => (ant?.querySelector(`[data-c="${c}"]`)?.value || "");
+        const dois = "display:grid;grid-template-columns:1fr 1fr;gap:8px;";
         div.innerHTML = `<div style="font-size:12px;font-weight:700;color:#111827;margin-bottom:8px;">Folha ${String(i + 1).padStart(2, "0")}</div>
           <div style="display:grid;grid-template-columns:1fr 90px;gap:8px;align-items:end;margin-bottom:8px;">
             <label style="display:block;font-size:11px;color:#4b5563;">Projeto (imagem ou PDF)<input type="file" data-c="arquivo" accept="image/*,application/pdf" style="${ESTILO_IN}margin-top:3px;"></label>
             <label style="display:block;font-size:11px;color:#4b5563;">Página do PDF<input type="number" data-c="pagina" min="1" value="${i + 1}" style="${ESTILO_IN}margin-top:3px;"></label>
           </div>
-          <div style="display:grid;grid-template-columns:1fr;gap:8px;">
-            ${m.campos.includes("item") ? campo("Item (texto no alto da folha)", "item", "ITEM 01", "ITEM " + String(i + 1).padStart(2, "0")) : ""}
-            ${m.campos.includes("itens") ? campo("Itens (texto no alto da folha)", "itens", "ITENS", "ITENS") : ""}
+          <label style="display:block;font-size:11px;color:#4b5563;margin-bottom:8px;">Item do pedido (numeração do PDV)
+            <select data-c="itemSel" style="${ESTILO_IN}margin-top:3px;"><option value="">${itens.length ? "Sem vincular a um item" : "Nenhum item encontrado no pedido"}</option>${opcoes}</select></label>
+          <div style="${dois}margin-bottom:8px;">
+            ${m.campos.includes("itens") ? campo("Itens (texto no alto)", "itens", "ITENS") : campo("Item (texto no alto)", "item", "ITEM 01")}
+            ${campo("Nome do item", "itemNome", "nome como no PDV")}
+          </div>
+          <div style="${dois}margin-bottom:8px;">
+            ${campo("Área", "area", "área do pedido")}
+            ${campo("Prazo do item", "prazo", "ex.: 15 dias úteis")}
+          </div>
+          <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:8px;">
             ${m.campos.includes("fixacao") ? campo("Tipo de fixação", "fixacao", "ex.: chumbador químico", herda("fixacao")) : ""}
             ${m.campos.includes("acabamento") ? campo("Acabamento", "acabamento", "ex.: aço inox escovado", herda("acabamento")) : ""}
+          </div>
+          <div style="${dois}">
+            ${campo("Revisão do desenho", "revisao", "ex.: 00", herda("revisao") || "00")}
+            ${campo("Data do desenho", "dataDesenho", "", herda("dataDesenho") || hojeISO(), "date")}
           </div>`;
         lista.appendChild(div);
+        const sel = div.querySelector('[data-c="itemSel"]');
+        sel.onchange = () => preencher(div, itens.find((x) => String(x.item) === sel.value), i + 1);
+        if (itens[i]) sel.value = String(itens[i].item);          // a folha n começa vinculada ao item n do pedido
+        preencher(div, itens[i], i + 1);
       }
     };
     j.box.querySelector("#fp-qtd").addEventListener("input", desenharLinhas);
@@ -389,7 +469,17 @@
         for (const div of Array.from(lista.children)) {
           const val = (c) => (div.querySelector(`[data-c="${c}"]`)?.value || "").trim();
           const arq = div.querySelector('[data-c="arquivo"]').files[0];
-          folhas.push({ imagem: await projetoParaImagem(arq, val("pagina")), item: val("item"), itens: val("itens"), fixacao: val("fixacao"), acabamento: val("acabamento") });
+          const itemNum = val("itemSel");
+          const rev = val("revisao");
+          // QR do item: abre o pedido (e o item) no Sistema de Produção
+          const link = d.pedido ? URL_PRODUCAO + "?pedido=" + encodeURIComponent(d.pedido) + (itemNum ? "&item=" + itemNum : "") : "";
+          folhas.push({
+            imagem: await projetoParaImagem(arq, val("pagina")),
+            item: val("item"), itens: val("itens"), itemNome: val("itemNome"), area: val("area"), prazo: val("prazo"),
+            fixacao: val("fixacao"), acabamento: val("acabamento"),
+            data: (dataBR(val("dataDesenho")) || d.data) + (rev ? (chave === "ver" ? "\nREV " : " · REV ") + rev : ""),   // vertical: célula estreita, revisão numa linha própria
+            qr: link ? await qrSvg(link) : "",
+          });
         }
         const html = montarHtml(chave, folhas, await logoDataUrl(), d, true);
         w.document.open(); w.document.write(html); w.document.close();
@@ -404,5 +494,5 @@
   }
 
   window.abrirFolhaDeProjeto = abrirFolhaDeProjeto;
-  window.FolhaProjeto = { MODELOS, montarHtml, ajustar, quebrar };
+  window.FolhaProjeto = { MODELOS, montarHtml, ajustar, quebrar, itensDoPedido, qrSvg, prazoTexto, URL_PRODUCAO };
 })();
