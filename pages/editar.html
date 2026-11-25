@@ -132,6 +132,10 @@ function destravarCampos() {
   <span class="material-icons-outlined">print</span> Folhas de Impressão
 </button>
 
+<button id="btn-folha-projeto" class="sidebar-button" onclick="abrirFolhaDeProjeto()">
+  <span class="material-icons-outlined">design_services</span> Folha de Projeto
+</button>
+
 <button id="btn-sincronizar-kommo" class="sidebar-button" onclick="sincronizarPDVparaKommo({ skipNumeroPedido: true })">
   <span class="material-icons-outlined">sync</span>Enviar Pedido (Kommo)
 </button>
@@ -200,7 +204,7 @@ async function verificarSePedidoFoiFinalizado() {
     console.log("🔒 Pedido finalizado detectado. Bloqueando edição.");
 
     document.querySelectorAll("input, select, textarea, button").forEach(el => {
-      if (el.id === "btn-pedido-finalizado") return;
+      if (el.id === "btn-pedido-finalizado" || el.id === "btn-folha-projeto") return;
       el.disabled = true;
       el.setAttribute("readonly", "readonly");
       el.style.pointerEvents = "none";
@@ -215,7 +219,7 @@ async function verificarSePedidoFoiFinalizado() {
     });
 
     document.querySelectorAll("[onclick]").forEach(el => {
-      if (el.id === "btn-pedido-finalizado") return;
+      if (el.id === "btn-pedido-finalizado" || el.id === "btn-folha-projeto") return;
       el.dataset.onclickOriginal = el.getAttribute("onclick") || "";
       el.removeAttribute("onclick");
     });
@@ -349,21 +353,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           ">
           Visualizar RELATORIO DE ENTREGA / INSTALAÇÃO
         </button>
-
-        <button type="button" id="btn-folha-projeto"
-          style="
-            width:100%;
-            border:none;
-            background:#b45309;
-            color:#fff;
-            padding:14px 16px;
-            border-radius:12px;
-            cursor:pointer;
-            font-size:14px;
-            font-weight:600;
-          ">
-          Visualizar FOLHA DE PROJETO
-        </button>
       </div>
     `;
 
@@ -400,11 +389,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       fechar();
       if (!await validarItensZeradosParaImpressao()) return;
       gerarHistoricoDeProducaoParaImpressao();
-    });
-
-    document.getElementById("btn-folha-projeto").addEventListener("click", () => {
-      fechar();
-      abrirFolhaDeProjeto();
     });
   }
 </script>
@@ -1860,8 +1844,8 @@ Instagram: </textarea>
   </div>
   <script src="../js/configuracoes.js?v=pm2"></script>
   <script src="../js/permissoes.js?v=pf1"></script>
-  <script src="../js/bloqueioKommo.js?v=ap3"></script>
-  <script src="../js/bloqueioValor.js?v=pf1"></script>
+  <script src="../js/bloqueioKommo.js?v=ap4"></script>
+  <script src="../js/bloqueioValor.js?v=pf2"></script>
   <script src="../js/bloqueioPorcentagem.js?v=pm1"></script>
   <script src="../js/desbloqueioFlutuante.js?v=fx1"></script>
   <script src="../js/salvarPropostas.js?v=ob1" defer></script>

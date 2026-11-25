@@ -48,7 +48,7 @@ function verificarBloqueioKommo() {
   }
 
   function aplicarBloqueio(bloquearPdfs, apenasVisual = false) {
-    const idsLivres = new Set(["btn-pedido-finalizado"]);
+    const idsLivres = new Set(["btn-pedido-finalizado", "btn-folha-projeto"]);
     const idsPdf = ["btn-visualizar-proposta", "btn-folhas-impressao"];
     if (!bloquearPdfs) {
       idsPdf.forEach(id => idsLivres.add(id));

@@ -179,7 +179,7 @@
   // Trava de campos: só na abertura da proposta (igual ao bloqueio por etapa)
   function aplicarCampos(regra) {
     if (!regra.tipoBloqueio) return;
-    const livres = new Set(["btn-pedido-finalizado"]);
+    const livres = new Set(["btn-pedido-finalizado", "btn-folha-projeto"]);
     if (regra.tipoBloqueio !== "tudo") {
       TODOS_PDFS.filter(id => !regra.pdfs?.[id]).forEach(id => livres.add(id));
     }
