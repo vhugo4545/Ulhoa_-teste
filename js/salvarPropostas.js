@@ -472,117 +472,6 @@ window.atualizarPropostaEditavel = async function () {
   }
   } // fim else (não é modelo)
 
-  // ── Valida campos obrigatórios pela etapa Kommo atual ─────────────────────
-  {
-    const _statusAtual = window._kommoStatusAtual?.statusId;
-    const _isSuperUser = (() => {
-      const t = localStorage.getItem("usuarioTipo") || "";
-      return (window.Permissoes ? window.Permissoes.pode("semTravas") : (t === "admin" || t === "gestor"));
-    })();
-
-    if (_statusAtual && !_isSuperUser) {
-      const _cfgObrig = (() => {
-        const s = window.CFgAPI?.obter()?.obrigatoriedadeCampos;
-        if (s && Object.keys(s).length) return s;
-        try { return JSON.parse(localStorage.getItem("cfg_obrigatoriedade_campos")) || {}; } catch { return {}; }
-      })();
-      const _camposReq = _cfgObrig[_statusAtual] || [];
-
-      if (_camposReq.length) {
-        const LABELS_OBRIG = {
-          dataOrcamento:                 "Data do Orçamento",
-          origemCliente:                 "Origem do Cliente",
-          _temProdutos:                              "Ao menos 1 produto adicionado",
-          // Bloco — Prazos
-          _todosBloco_previsaoEntrega:              "Prazo (dias úteis) em todos os itens",
-          _todosBloco_informacoesProduto:           "Condição de prazo em todos os itens",
-          _todosBloco_dataAssinaturaCliente:        "Data Assinatura do Cliente (todos os itens)",
-          _todosBloco_dataInstalacaoEstrutura:      "Data Instalação da Estrutura (todos os itens)",
-          _todosBloco_dataPagamentoVidros:          "Data Último Pagamento Faturamento Direto (todos os itens)",
-          _todosBloco_dataLiberacaoFornecedor:      "Data Liberação do Fornecedor (todos os itens)",
-          "clientes[0].razaoSocial":     "Nome / Razão Social",
-          "clientes[0].cpfCnpj":         "CPF / CNPJ do cliente",
-          "clientes[0].nomeContato":     "Nome do Contato",
-          "clientes[0].telefoneCliente": "Telefone do cliente",
-          "clientes[0].emailCliente":    "E-mail do cliente",
-          cep:                           "CEP (obra)",
-          rua:                           "Rua (obra)",
-          numero:                        "Número (endereço)",
-          bairro:                        "Bairro (obra)",
-          cidade:                        "Cidade (obra)",
-          estado:                        "Estado (obra)",
-          vendedorResponsavel:           "Vendedor Responsável",
-          operadorInterno:               "Operador Interno",
-          prazosArea:                    "Prazos por Área",
-          condicaoPagamento:             "Condição de Pagamento",
-          condicoesGerais:               "Condições Gerais",
-          prazoEntrega:                  "Prazo de Entrega",
-          dataPedidoEnviadoCliente:      "Data Envio ao Cliente",
-          meioEnvioPedido:               "Meio de Envio",
-          dataPedidoAssinado:            "Data Pedido Assinado",
-          dataEntregaProjeto:            "Data Entrega Projeto",
-          dataInicioProjeto:             "Data Início Projeto",
-          prazoPrevisto:                 "Prazo Previsto",
-          dataLiberacaoConferencia:      "Data Liberação Conferência",
-          dataConferencia:               "Data da Conferência",
-          obraLiberada:                  "Obra Liberada?",
-          dataLiberacaoObra:             "Data Liberação Obra",
-          dataProjetoEnviado:            "Data Projeto Enviado",
-          dataProjetoAssinado:           "Data Projeto Assinado",
-          dataMedicaoRealizada:          "Data Medição Realizada",
-        };
-
-        function _obterValorCampoObrig(key) {
-          if (key === "_temProdutos") {
-            const c = document.getElementById("blocosProdutosContainer");
-            return c && c.querySelectorAll("table tbody tr:not(.extra-summary-row)").length > 0 ? "ok" : "";
-          }
-          if (key.startsWith("_todosBloco_")) {
-            const nome = key.replace("_todosBloco_", "");
-            const campos = document.querySelectorAll(
-              `#blocosProdutosContainer input[name='${nome}'], #blocosProdutosContainer textarea[name='${nome}']`
-            );
-            if (!campos.length) return "ok"; // sem blocos: _temProdutos já cobre
-            return Array.from(campos).every(c => c.value.trim()) ? "ok" : "";
-          }
-          if (key.startsWith("clientes[0].")) {
-            const campo = key.replace("clientes[0].", "");
-            const clienteEl = document.querySelector(".cliente-item");
-            const sels = {
-              razaoSocial:      ".razaoSocial",
-              cpfCnpj:          ".cpfCnpj",
-              nomeContato:      ".nomeContato",
-              telefoneCliente:  ".telefoneCliente",
-              emailCliente:     ".emailCliente",
-            };
-            return clienteEl?.querySelector(sels[campo] || "")?.value?.trim() || "";
-          }
-          if (key === "vendedorResponsavel") {
-            const s = document.getElementById("vendedorResponsavel");
-            return s?.options[s.selectedIndex]?.value?.trim() || "";
-          }
-          if (key === "operadorInterno") {
-            const s = document.getElementById("operadorInterno");
-            return s?.options?.[s.selectedIndex]?.value?.trim() || s?.value?.trim() || "";
-          }
-          return document.getElementById(key)?.value?.trim() || "";
-        }
-
-        const vazios = _camposReq.filter(k => !_obterValorCampoObrig(k));
-
-        if (vazios.length) {
-          const nomeEtapa = window._kommoStatusAtual?.nomeEtapa || _statusAtual;
-          const lista = vazios.map(k => `• ${LABELS_OBRIG[k] || k}`).join("<br>");
-          mostrarPopupCustomizado(
-            "🔒 Campos obrigatórios",
-            `Os seguintes campos são obrigatórios na etapa <strong>${nomeEtapa}</strong>:<br><br>${lista}`,
-            "warning"
-          );
-          return;
-        }
-      }
-    }
-  }
   // ──────────────────────────────────────────────────────────────────────────
 
   try {
@@ -1118,7 +1007,125 @@ async function _statusKommoERecarregar(novoStatus, rotaKommo) {
 
 // 2️⃣ Pendente de aprovação
 async function marcarPendenteAprovacao() {
+  if (!validarCamposObrigatoriosEtapa()) return;
   await _statusKommoERecarregar("Pendente de aprovação", "solicitar-aprovacao");
+}
+
+// Campos obrigatórios da etapa atual da Kommo (Ajustes → Etapas → "Campos obrigatórios"): conferidos ao
+// "Solicitar Aprovação" (antes eram no Salvar). Mostra o aviso com o que falta e devolve false; tudo certo: true.
+function validarCamposObrigatoriosEtapa() {
+
+  {
+    const _statusAtual = window._kommoStatusAtual?.statusId;
+    const _isSuperUser = (() => {
+      const t = localStorage.getItem("usuarioTipo") || "";
+      return (window.Permissoes ? window.Permissoes.pode("semTravas") : (t === "admin" || t === "gestor"));
+    })();
+
+    if (_statusAtual && !_isSuperUser) {
+      const _cfgObrig = (() => {
+        const s = window.CFgAPI?.obter()?.obrigatoriedadeCampos;
+        if (s && Object.keys(s).length) return s;
+        try { return JSON.parse(localStorage.getItem("cfg_obrigatoriedade_campos")) || {}; } catch { return {}; }
+      })();
+      const _camposReq = _cfgObrig[_statusAtual] || [];
+
+      if (_camposReq.length) {
+        const LABELS_OBRIG = {
+          dataOrcamento:                 "Data do Orçamento",
+          origemCliente:                 "Origem do Cliente",
+          _temProdutos:                              "Ao menos 1 produto adicionado",
+          // Bloco — Prazos
+          _todosBloco_previsaoEntrega:              "Prazo (dias úteis) em todos os itens",
+          _todosBloco_informacoesProduto:           "Condição de prazo em todos os itens",
+          _todosBloco_dataAssinaturaCliente:        "Data Assinatura do Cliente (todos os itens)",
+          _todosBloco_dataInstalacaoEstrutura:      "Data Instalação da Estrutura (todos os itens)",
+          _todosBloco_dataPagamentoVidros:          "Data Último Pagamento Faturamento Direto (todos os itens)",
+          _todosBloco_dataLiberacaoFornecedor:      "Data Liberação do Fornecedor (todos os itens)",
+          "clientes[0].razaoSocial":     "Nome / Razão Social",
+          "clientes[0].cpfCnpj":         "CPF / CNPJ do cliente",
+          "clientes[0].nomeContato":     "Nome do Contato",
+          "clientes[0].telefoneCliente": "Telefone do cliente",
+          "clientes[0].emailCliente":    "E-mail do cliente",
+          cep:                           "CEP (obra)",
+          rua:                           "Rua (obra)",
+          numero:                        "Número (endereço)",
+          bairro:                        "Bairro (obra)",
+          cidade:                        "Cidade (obra)",
+          estado:                        "Estado (obra)",
+          vendedorResponsavel:           "Vendedor Responsável",
+          operadorInterno:               "Operador Interno",
+          prazosArea:                    "Prazos por Área",
+          condicaoPagamento:             "Condição de Pagamento",
+          condicoesGerais:               "Condições Gerais",
+          prazoEntrega:                  "Prazo de Entrega",
+          dataPedidoEnviadoCliente:      "Data Envio ao Cliente",
+          meioEnvioPedido:               "Meio de Envio",
+          dataPedidoAssinado:            "Data Pedido Assinado",
+          dataEntregaProjeto:            "Data Entrega Projeto",
+          dataInicioProjeto:             "Data Início Projeto",
+          prazoPrevisto:                 "Prazo Previsto",
+          dataLiberacaoConferencia:      "Data Liberação Conferência",
+          dataConferencia:               "Data da Conferência",
+          obraLiberada:                  "Obra Liberada?",
+          dataLiberacaoObra:             "Data Liberação Obra",
+          dataProjetoEnviado:            "Data Projeto Enviado",
+          dataProjetoAssinado:           "Data Projeto Assinado",
+          dataMedicaoRealizada:          "Data Medição Realizada",
+        };
+
+        function _obterValorCampoObrig(key) {
+          if (key === "_temProdutos") {
+            const c = document.getElementById("blocosProdutosContainer");
+            return c && c.querySelectorAll("table tbody tr:not(.extra-summary-row)").length > 0 ? "ok" : "";
+          }
+          if (key.startsWith("_todosBloco_")) {
+            const nome = key.replace("_todosBloco_", "");
+            const campos = document.querySelectorAll(
+              `#blocosProdutosContainer input[name='${nome}'], #blocosProdutosContainer textarea[name='${nome}']`
+            );
+            if (!campos.length) return "ok"; // sem blocos: _temProdutos já cobre
+            return Array.from(campos).every(c => c.value.trim()) ? "ok" : "";
+          }
+          if (key.startsWith("clientes[0].")) {
+            const campo = key.replace("clientes[0].", "");
+            const clienteEl = document.querySelector(".cliente-item");
+            const sels = {
+              razaoSocial:      ".razaoSocial",
+              cpfCnpj:          ".cpfCnpj",
+              nomeContato:      ".nomeContato",
+              telefoneCliente:  ".telefoneCliente",
+              emailCliente:     ".emailCliente",
+            };
+            return clienteEl?.querySelector(sels[campo] || "")?.value?.trim() || "";
+          }
+          if (key === "vendedorResponsavel") {
+            const s = document.getElementById("vendedorResponsavel");
+            return s?.options[s.selectedIndex]?.value?.trim() || "";
+          }
+          if (key === "operadorInterno") {
+            const s = document.getElementById("operadorInterno");
+            return s?.options?.[s.selectedIndex]?.value?.trim() || s?.value?.trim() || "";
+          }
+          return document.getElementById(key)?.value?.trim() || "";
+        }
+
+        const vazios = _camposReq.filter(k => !_obterValorCampoObrig(k));
+
+        if (vazios.length) {
+          const nomeEtapa = window._kommoStatusAtual?.nomeEtapa || _statusAtual;
+          const lista = vazios.map(k => `• ${LABELS_OBRIG[k] || k}`).join("<br>");
+          mostrarPopupCustomizado(
+            "🔒 Campos obrigatórios",
+            `Os seguintes campos são obrigatórios na etapa <strong>${nomeEtapa}</strong>:<br><br>${lista}`,
+            "warning"
+          );
+          return false;
+        }
+      }
+    }
+  }
+  return true;
 }
 
 // 3️⃣ Aprovado Pelo Gestor
